@@ -9,7 +9,7 @@ if [ ! -f /etc/nginx/ssl/dev.crt ]; then
   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/nginx/ssl/dev.key \
     -out /etc/nginx/ssl/dev.crt \
-    -subj "/C=JP/ST=Tokyo/L=Dev/O=Dev/CN=${DOMAIN_NAME}"
+    -subj "/CN=${DOMAIN_NAME}"
 fi
 
 echo "🚀 Starting nginx..."
