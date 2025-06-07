@@ -15,16 +15,23 @@ RUN npm run build
 # 実行ステージ（nginx で静的ファイル提供）
 FROM debian:bookworm-slim
 
+# 必要なツールをインストール（nginx + openssl）
 RUN apt-get update && \
-    apt-get install -y nginx && \
+    apt-get install -y nginx openssl && \
     rm -rf /var/lib/apt/lists/*
+
+# Nginxの設定ファイル
+COPY default.conf /etc/nginx/conf.d/default.conf
+
+# 証明書生成スクリプトをコピーし実行権限を付与
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # ビルド成果物をnginxへ
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# nginxのポート設定
-EXPOSE 3000
+# HTTPS用ポートを開ける
+EXPOSE 443
 
-# Nginxサーバーを起動
-CMD ["nginx", "-g", "daemon off;"]
-
+# 起動時にSSL生成→nginx起動
+CMD ["/entrypoint.sh"]
