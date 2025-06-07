@@ -150,6 +150,61 @@ Google OAuthトークンによるログイン / 新規登録
 
 ---
 
+## WebSocket仕様
+
+---
+
+### 接続先
+
+ws://yourdomain.com/ws/chat
+
+### 接続方法
+
+* 接続時に JWTトークン をクエリパラメータで渡す
+
+* 例：ws://yourdomain.com/ws/chat?token=xxx
+
+### 接続後の動作
+
+* 接続後、以下の形式でメッセージを送受信する（JSON）
+
+### ▶ 送信形式（クライアント → サーバー）
+
+```json
+{
+  "type": "message",
+  "receiver_id": 2,
+  "content": "こんにちは"
+}
+```
+### ▶ サーバーからの受信（サーバー → クライアント）
+
+```json
+{
+  "type": "message",
+  "sender_id": 2,
+  "content": "こんにちは",
+  "timestamp": "2025-06-07T12:00:00Z"
+}
+```
+
+### ▶ 既読通知
+
+```json
+{
+  "type": "read",
+  "message_id": 123,
+  "reader_id": 1
+}
+```
+
+* 接続エラー・切断対応
+* 認証エラー時：接続拒否、401エラーを返す
+* タイムアウト、ping/pongで接続維持
+* 切断時に再接続処理（フロント側対応）
+
+---
+
 ## 備考
 
 * すべてのAPIはJWT認証（Authorizationヘッダ）を必要とします
