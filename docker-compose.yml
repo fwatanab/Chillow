@@ -38,11 +38,14 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
+      - chillow-mysql-data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d
     restart: always
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
+    env_file:
+      - .env
     ports:
       - "8081:80"
     environment:
@@ -53,3 +56,5 @@ services:
       - db
     restart: always
 
+volumes:
+  chillow-mysql-data: # MySQLの永続データ
