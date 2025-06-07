@@ -152,8 +152,6 @@ Google OAuthトークンによるログイン / 新規登録
 
 ## WebSocket仕様
 
----
-
 ### 接続先
 
 ws://yourdomain.com/ws/chat
