@@ -1,14 +1,18 @@
 services:
   frontend:
     build: ./frontend
+    env_file:
+      - .env
     ports:
-      - "3000:3000"
+      - "3443:443"
     depends_on:
       - backend
     restart: always
 
   backend:
     build: ./backend
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     depends_on:
@@ -24,8 +28,10 @@ services:
   db:
     image: mysql:8.0
     container_name: chillow-db
+    env_file:
+      - .env
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
