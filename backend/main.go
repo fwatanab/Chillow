@@ -1,14 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"log"
+
+	"chillow/config"
+	"chillow/router"
 )
 
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Chillow backend running")
-	})
-	http.ListenAndServe(":8080", nil)
+func	main() {
+	cfg := config.LoadConfig()                // .env 読み込み
+
+	r := router.SetupRouter()       // 全ルーティングを設定
+
+	if err := r.Run(":8080"); err != nil {
+		log.Fatalf("サーバー起動失敗: %v", err)
+	}
 }
 
