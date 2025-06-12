@@ -31,7 +31,7 @@ RUN chmod +x /entrypoint.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # HTTPS用ポートを開ける
-EXPOSE 443
+EXPOSE 3443
 
 # 起動時にSSL生成→nginx起動
 CMD ["/entrypoint.sh"]
