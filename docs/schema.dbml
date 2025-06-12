@@ -1,6 +1,6 @@
 Table users {
   id           int [pk, increment]
-  mail         varchar(255) [unique, not null]
+  email         varchar(255) [unique, not null]
   nickname     varchar(50) [not null]
   friend_code  varchar(20) [unique, not null]
   avatar_url   text

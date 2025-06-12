@@ -1,6 +1,6 @@
 CREATE TABLE `users` (
   `id` int PRIMARY KEY AUTO_INCREMENT,
-  `mail` varchar(255) UNIQUE NOT NULL,
+  `email` varchar(255) UNIQUE NOT NULL,
   `nickname` varchar(50) NOT NULL,
   `friend_code` varchar(20) UNIQUE NOT NULL,
   `avatar_url` text,
