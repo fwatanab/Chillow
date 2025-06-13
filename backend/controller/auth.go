@@ -23,13 +23,6 @@ func GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-
-	// 🔍 送信されたIDトークンのログ（セキュリティ上、本番では表示しない）
-	// log.Printf("🔑 受信したIDトークン: %s", req.IDToken)
-
-	log.Printf("📥 Google IDトークン検証開始 (ClientID: %s)", config.Cfg.GoogleClientID)
-
-
 	// GoogleのIDトークンを検証
 	payload, err := idtoken.Validate(context.Background(), req.IDToken, config.Cfg.GoogleClientID)
 	if err != nil {
@@ -50,11 +43,7 @@ func GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-
-
 	log.Printf("✅ IDトークン検証成功: email=%s, name=%s", email, name)
-
-
 
 	// JWTトークン発行
 	token, err := generateJWT(user.ID)
@@ -63,11 +52,7 @@ func GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-
 	log.Printf("🔐 JWT発行成功: userID=%d", user.ID)
-
-
-
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
