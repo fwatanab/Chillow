@@ -25,14 +25,15 @@ func	SetupRouter() *gin.Engine {
 			auth.POST("/google", controller.GoogleLoginHandler)
 		}
 
-// 		// ユーザー情報
-// 		users := api.Group("/users")
-// 		{
-// 			users.GET("/me", controller.GetUserHandler)
-// 			users.PATCH("/me", controller.PatchUserHandler)
-// 			users.GET("/search", controller.SearchUserByCodeHandler)
-// 		}
-// 
+		// ユーザー情報
+		users := api.Group("/users")
+		users.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		{
+			users.GET("/me", controller.GetUserHandler)
+			users.PATCH("/me", controller.PatchUserHandler)
+			users.GET("/search", controller.SearchUserByCodeHandler)
+		}
+
 // 		// フレンド申請・承認・一覧など
 // 		friendRequests := api.Group("/friend-requests")
 // 		{
