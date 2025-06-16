@@ -1,36 +1,40 @@
-import { GoogleLogin } from '@react-oauth/google'
+import { GoogleLogin } from '@react-oauth/google';
+import { useSetRecoilState } from 'recoil';
+import { authTokenState, currentUserState } from '../store/auth';
+import { loginWithGoogle } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
 
-const GoogleLoginButton = () => {
-  const handleLogin = async (credentialResponse: any) => {
-    const idToken = credentialResponse.credential
-    console.log('🔑 取得したIDトークン:', idToken)
+const Login = () => {
+	const setToken = useSetRecoilState(authTokenState);
+	const setUser = useSetRecoilState(currentUserState);
+	const navigate = useNavigate();
 
-    if (!idToken) {
-      console.error('❌ IDトークンが取得できませんでした')
-      return
-    }
+	const handleLoginSuccess = async (credentialResponse: any) => {
+		const idToken = credentialResponse.credential;
+		if (!idToken) {
+			console.error("❌ IDトークンが取得できませんでした");
+			return;
+		}
+		try {
+			const res = await loginWithGoogle(idToken);
+			setToken(res.token);
+			setUser(res.user);
+			navigate('/');
+		} catch (err) {
+			console.error("❌ サーバー認証に失敗しました", err);
+		}
+	};
 
-    try {
-      const res = await fetch('https://localhost:8443/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_token: idToken })
-      })
+	return (
+		<div>
+			<h2>ログイン</h2>
+			<GoogleLogin
+				onSuccess={handleLoginSuccess}
+				onError={() => console.error("❌ Googleログインに失敗しました")}
+			/>
+		</div>
+	);
+};
 
-      const data = await res.json()
-      console.log('✅ バックエンドからのレスポンス:', data)
-    } catch (err) {
-      console.error('❌ フロント→バック通信に失敗:', err)
-    }
-  }
-
-  return (
-    <GoogleLogin
-      onSuccess={handleLogin}
-      onError={() => console.error('❌ Googleログインに失敗しました')}
-    />
-  )
-}
-
-export default GoogleLoginButton
+export default Login;
 
