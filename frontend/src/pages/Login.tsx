@@ -29,13 +29,19 @@ const Login = () => {
 		}
 	};
 
+
 	return (
-		<div>
-			<h2>ログイン</h2>
-			<GoogleLogin
-				onSuccess={handleLoginSuccess}
-				onError={() => console.error("❌ Googleログインに失敗しました")}
-			/>
+		<div className="min-h-screen flex items-center justify-center px-4">
+			<div className="card w-full max-w-md">
+				<h2 className="heading mb-6 text-center">Chillowへログイン</h2>
+				<div className="flex justify-center">
+					<GoogleLogin
+						onSuccess={handleLoginSuccess}
+						onError={() => console.error("❌ Googleログインに失敗しました")}
+						width="250"
+					/>
+				</div>
+			</div>
 		</div>
 	);
 };
