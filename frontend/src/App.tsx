@@ -1,8 +1,13 @@
-import Login from './pages/Login'
+import { RecoilRoot } from 'recoil';
+import AppRoutes from './routes';
 
-function App() {
-  return <Login />
-}
+const App = () => {
+	return (
+		<RecoilRoot>
+			<AppRoutes />
+		</RecoilRoot>
+	);
+};
 
 export default App
 
