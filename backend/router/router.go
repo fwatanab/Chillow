@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	"chillow/controller"
+	"chillow/middleware"
 	"github.com/gin-contrib/cors"
 )
 
