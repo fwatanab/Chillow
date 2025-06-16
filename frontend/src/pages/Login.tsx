@@ -17,6 +17,10 @@ const Login = () => {
 		}
 		try {
 			const res = await loginWithGoogle(idToken);
+
+			// ログイン成功時にトークンをブラウザに保持
+			localStorage.setItem('authToken', res.token);
+
 			setToken(res.token);
 			setUser(res.user);
 			navigate('/');
