@@ -1,68 +1,58 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* ---------- 共通のカスタムスタイル ---------- */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
+/* ベース背景色（Discord風） */
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  @apply bg-[#2C2F33] text-white font-sans;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* 全体のフォントサイズと行間 */
+html {
+  font-size: 16px;
+  line-height: 1.5;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ボタンの共通スタイル */
+.btn {
+  @apply px-4 py-2 rounded-lg font-semibold transition duration-200;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.btn-primary {
+  @apply bg-[#7289DA] text-white hover:bg-[#5b6eae];
 }
+
+.btn-secondary {
+  @apply bg-gray-600 text-white hover:bg-gray-500;
+}
+
+/* 入力フォームの共通スタイル */
+.input {
+  @apply bg-[#23272A] text-white border border-gray-700 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#7289DA];
+}
+
+/* 見出しのスタイル */
+.heading {
+  @apply text-2xl font-bold text-[#7289DA];
+}
+
+/* カードコンポーネント用 */
+.card {
+  @apply bg-[#2F3136] p-4 rounded-lg shadow-md;
+}
+
+/* チャットバブル用のスタイル */
+.chat-bubble {
+  @apply max-w-xs md:max-w-md break-words px-4 py-2 rounded-lg;
+}
+
+.chat-bubble-self {
+  @apply chat-bubble bg-[#7289DA] text-white self-end;
+}
+
+.chat-bubble-other {
+  @apply chat-bubble bg-[#99AAB5] text-black self-start;
+}
+
