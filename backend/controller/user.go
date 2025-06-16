@@ -22,7 +22,7 @@ func	GetUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOk, user)
+	c.JSON(http.StatusOK, user)
 }
 
 func	PatchUserHandler(c *gin.Context) {
@@ -34,14 +34,14 @@ func	PatchUserHandler(c *gin.Context) {
 	userID := userIDRaw.(uint)
 
 	var req struct {
-		Nickname struct `json:"nickname"`
+		Nickname string `json:"nickname"`
 	}
-	if err := c.ShouldBindJSON(&req); err != || req.Nickname == "" {
+	if err := c.ShouldBindJSON(&req); err != nil || req.Nickname == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエストです"})
 		return
 	}
 
-	if err := db.DB.Model.(&model.user{}).Where("id = ?", userID).Update("nickname", req.Nickname).Error; err != nil {
+	if err := db.DB.Model(&model.User{}).Where("id = ?", userID).Update("nickname", req.Nickname).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新に失敗しました"})
 		return
 	}
