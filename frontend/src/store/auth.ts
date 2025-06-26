@@ -1,5 +1,5 @@
 import { atom } from 'recoil';
-import type { User } from '../types';
+import type { User } from '../types/user';
 
 // ローカルストレージからトークンを取得する関数
 const getInitialToken = (): string | null => {
