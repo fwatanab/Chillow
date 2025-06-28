@@ -35,29 +35,29 @@ func	SetupRouter() *gin.Engine {
 			users.GET("/search", controller.SearchUserByCodeHandler)
 		}
 
-// 		// フレンド申請・承認・一覧など
-// 		friendRequests := api.Group("/friend-requests")
-// 		{
-// 			friendRequests.POST("", controller.SendFriendRequestHandler)
-// 			friendRequests.GET("", controller.GetFriendRequestsHandler)
-// 			friendRequests.PATCH("/:id", controller.RespondToFriendRequestHandler)
-// 		}
-// 
-// 		// フレンド一覧・削除
-// 		friends := api.Group("/friends")
-// 		{
-// 			friends.GET("", controller.GetFriendsHandler)
-// 			friends.DELETE("/:id", controller.DeleteFriendHandler)
-// 		}
-// 
-// 		// メッセージ関連
-// 		messages := api.Group("/messages")
-// 		{
-// 			messages.GET("/:friend_id", controller.GetMessagesHandler)
-// 			messages.POST("", controller.PostMessageHandler)
-// 			messages.POST("/:id/read", controller.MarkMessageAsReadHandler)
-// 		}
-// 
+		// フレンド申請・承認・一覧など
+		friendRequests := api.Group("/friend-requests")
+		{
+			friendRequests.POST("", controller.SendFriendRequestHandler)
+			friendRequests.GET("", controller.GetFriendRequestsHandler)
+			friendRequests.PATCH("/:id", controller.RespondToFriendRequestHandler)
+		}
+
+		// フレンド一覧・削除
+		friends := api.Group("/friends")
+		{
+			friends.GET("", controller.GetFriendsHandler)
+			friends.DELETE("/:id", controller.DeleteFriendHandler)
+		}
+
+		// メッセージ関連
+		messages := api.Group("/messages")
+		{
+			messages.GET("/:friend_id", controller.GetMessagesHandler)
+			messages.POST("", controller.PostMessageHandler)
+			messages.POST("/:id/read", controller.MarkMessageAsReadHandler)
+		}
+
 // 		// 通知関連（未読件数など）
 // 		api.GET("/unread-counts", controller.GetUnreadCountsHandler)
 	}
