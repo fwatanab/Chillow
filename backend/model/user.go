@@ -12,8 +12,8 @@ import (
 type User struct {
 	ID			uint      `json:"id" gorm:"primaryKey"`
 	Nickname	string    `json:"nickname"`
-	Email		string    `json:"email" gorm:"uniqueIndex"`
-	FriendCode	string    `json:"friend_code" gorm:"uniqueIndex"`
+	Email		string    `json:"email" gorm:"type:varchar(191);uniqueIndex"`
+	FriendCode	string    `json:"friend_code" gorm:"type:varchar(20);uniqueIndex"`
 	AvatarURL	string    `json:"avatar_url"`
 	CreatedAt	time.Time `json:"created_at"`
 	UpdatedAt	time.Time `json:"updated_at"`
