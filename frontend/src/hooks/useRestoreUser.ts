@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { authTokenState, currentUserState } from '../store/auth';
-import axios from 'axios';
+import axios from '../utils/axios';
 
 export const useRestoreUser = () => {
 	const token = useRecoilValue(authTokenState);
@@ -10,7 +10,7 @@ export const useRestoreUser = () => {
 	useEffect(() => {
 		if (!token) return;
 
-		axios.get('/api/users/me', {
+		axios.get('/users/me', {
 			headers: { Authorization: `Bearer ${token}` },
 		})
 			.then((res) => setUser(res.data))

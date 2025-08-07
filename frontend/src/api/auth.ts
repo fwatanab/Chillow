@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../utils/axios';
 
 declare global {
 	interface Window {
@@ -9,7 +9,7 @@ declare global {
 // GoogleログインのAPI通信
 export const loginWithGoogle = async (idToken: string) => {
 	try {
-		const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google`, {
+		const res = await axios.post("/auth/google", {
 			id_token: idToken
 		});
 		return res.data;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import axios from "axios";
+import axios from "../utils/axios";
 
 interface Friend {
 	id: number;
@@ -15,33 +15,33 @@ const ChatList = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-// ✅ テスト用：仮フレンドデータを表示（API成功しなくてもチャット画面へ遷移可）
-		const mockFriends: Friend[] = [
-			{
-				id: 2,
-				nickname: "テストユーザー",
-				avatar_url: "https://via.placeholder.com/48",
-				last_message: "これはテストメッセージです",
-				last_message_time: new Date().toISOString(),
-			},
-		];
-		setFriends(mockFriends); // ✅ 本番ではこの行を削除
+// // ✅ テスト用：仮フレンドデータを表示（API成功しなくてもチャット画面へ遷移可）
+// 		const mockFriends: Friend[] = [
+// 			{
+// 				id: 2,
+// 				nickname: "テストユーザー",
+// 				avatar_url: "https://via.placeholder.com/48",
+// 				last_message: "これはテストメッセージです",
+// 				last_message_time: new Date().toISOString(),
+// 			},
+// 		];
+// 		setFriends(mockFriends); // ✅ 本番ではこの行を削除
 
 // ✅ 本番用：APIで友達一覧を取得
 // 🔽 friendsが上書きされるのでbackend実装するまでコメントアウト
-// 		const fetchFriends = async () => {
-// 		try {
-// 			const token = localStorage.getItem("access_token");
-// 			const res = await axios.get("/api/friends", {
-// 			  headers: { Authorization: `Bearer ${token}` },
-// 			});
-// 			setFriends(res.data);
-// 		} catch (err) {
-// 			console.error("友達一覧の取得に失敗しました", err);
-// 		}
-// 	};
-// 
-// 	fetchFriends();
+		const fetchFriends = async () => {
+		try {
+			const token = localStorage.getItem("access_token");
+			const res = await axios.get("/friends", {
+			  headers: { Authorization: `Bearer ${token}` },
+			});
+			setFriends(res.data);
+		} catch (err) {
+			console.error("友達一覧の取得に失敗しました", err);
+		}
+	};
+
+	fetchFriends();
 	}, []);
 	
 	const handleClick = (friendId: number) => {
