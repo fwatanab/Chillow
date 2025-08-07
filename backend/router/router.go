@@ -10,8 +10,14 @@ import (
 func	SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	// CORS対応
-	r.Use(cors.Default())
+	// CORS 設定
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"https://localhost:3443"}, // フロントのURLを明示的に指定
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	// ヘルスチェック
 	r.GET("/ping", func(c *gin.Context) {
