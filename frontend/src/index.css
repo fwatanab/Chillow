@@ -2,57 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- 共通のカスタムスタイル ---------- */
-
-/* ベース背景色（Discord風） */
 body {
-  @apply bg-[#2C2F33] text-white font-sans;
+  @apply bg-discord-background text-discord-text font-sans;
 }
 
-/* 全体のフォントサイズと行間 */
-html {
-  font-size: 16px;
-  line-height: 1.5;
+/* 入力・ボタン */
+input, button, textarea {
+  @apply bg-discord-sidebar text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-discord-accent;
 }
 
-/* ボタンの共通スタイル */
-.btn {
-  @apply px-4 py-2 rounded-lg font-semibold transition duration-200;
+/* チャットバブル（LINE風） */
+.bubble-left {
+  @apply bg-gray-700 text-white rounded-xl rounded-bl-none p-2 max-w-xs mb-1;
 }
 
-.btn-primary {
-  @apply bg-[#7289DA] text-white hover:bg-[#5b6eae];
-}
-
-.btn-secondary {
-  @apply bg-gray-600 text-white hover:bg-gray-500;
-}
-
-/* 入力フォームの共通スタイル */
-.input {
-  @apply bg-[#23272A] text-white border border-gray-700 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-[#7289DA];
-}
-
-/* 見出しのスタイル */
-.heading {
-  @apply text-2xl font-bold text-[#7289DA];
-}
-
-/* カードコンポーネント用 */
-.card {
-  @apply bg-[#2F3136] p-4 rounded-lg shadow-md;
-}
-
-/* チャットバブル用のスタイル */
-.chat-bubble {
-  @apply max-w-xs md:max-w-md break-words px-4 py-2 rounded-lg;
-}
-
-.chat-bubble-self {
-  @apply chat-bubble bg-[#7289DA] text-white self-end;
-}
-
-.chat-bubble-other {
-  @apply chat-bubble bg-[#99AAB5] text-black self-start;
+.bubble-right {
+  @apply bg-discord-accent text-white rounded-xl rounded-br-none p-2 max-w-xs ml-auto mb-1;
 }
 
