@@ -4,21 +4,27 @@ import { authTokenState, currentUserState } from '../store/auth';
 import axios from '../utils/axios';
 
 export const useRestoreUser = () => {
-	const token = useRecoilValue(authTokenState);
+	const currentToken = useRecoilValue(authTokenState);
 	const setUser = useSetRecoilState(currentUserState);
 
 	useEffect(() => {
-		if (!token) return;
+		if (!currentToken) return;
 
-		axios.get('/users/me', {
-			headers: { Authorization: `Bearer ${token}` },
-		})
-			.then((res) => setUser(res.data))
-			.catch(() => {
-				console.warn('⚠️ トークン無効。ユーザー情報を初期化');
-				localStorage.removeItem('authToken');
-				setUser(null); // ユーザー情報も初期化しておくと良い
+		const token = localStorage.getItem('access_token');
+		if (!token) {
+			setUser(null);
+			return;
+		}
+
+		axios.get('/users/me')
+			.then((res) => {
+				setUser(res.data);
+			})
+			.catch((err) => {
+				console.warn('⚠️ 認証失敗', err);
+				setUser(null);
+				localStorage.removeItem('access_token');
 			});
-	}, [token]);
+	}, [setUser]);
 };
 
