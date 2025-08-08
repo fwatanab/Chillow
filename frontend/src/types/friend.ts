@@ -10,10 +10,10 @@ export type Friend = {
 
 export type FriendRequest = {
 	id: number;
-	sender_id: number;
+	requester_id: number;
 	receiver_id: number;
-	sender_nickname: string;
-	status: "pending" | "accepted" | "declined";
+	requester_nickname: string;
+	status: FriendRequestStatus;
 	created_at: string;
 	updated_at: string;
 };
