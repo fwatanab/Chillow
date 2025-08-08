@@ -34,7 +34,8 @@ CREATE TABLE `friend_requests` (
   `requester_id` int,
   `receiver_id` int,
   `status` enum('pending','accepted','rejected') NOT NULL,
-  `created_at` datetime
+  `created_at` datetime,
+  `updated_at` datetime
 );
 
 ALTER TABLE `messages` ADD FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`)
