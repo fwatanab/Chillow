@@ -7,12 +7,12 @@ import (
 )
 
 type FriendRequest struct {
-	ID         uint           `gorm:"primaryKey" json:"id"`
-	SenderID   uint           `json:"sender_id"`
-	ReceiverID uint           `json:"receiver_id"`
-	Status     string         `json:"status"` // "pending", "accepted", "declined"
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	RequesterID uint     `gorm:"json:"requester_id"`
+	ReceiverID uint      `json:"receiver_id"`
+	Status     string    `json:"status"` // "pending", "accepted", "declined"
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type Friend struct {
@@ -22,9 +22,9 @@ type Friend struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func	PendingRequestExists(senderID, receiverID uint) (bool, error) {
+func	PendingRequestExists(requesterID, receiverID uint) (bool, error) {
 	var req FriendRequest
-	err := db.DB.Where("sender_id = ? AND receiver_id = ? AND status = ?", senderID, receiverID, "pending").
+	err := db.DB.Where("requester_id = ? AND receiver_id = ? AND status = ?", requesterID, receiverID, "pending").
 		First(&req).Error
 	if err == gorm.ErrRecordNotFound {
 		return false, nil
