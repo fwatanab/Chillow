@@ -43,6 +43,7 @@ func	SetupRouter() *gin.Engine {
 
 		// フレンド申請・承認・一覧など
 		friendRequests := api.Group("/friend-requests")
+		friendRequests.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
 		{
 			friendRequests.POST("", controller.SendFriendRequestHandler)
 			friendRequests.GET("", controller.GetFriendRequestsHandler)
