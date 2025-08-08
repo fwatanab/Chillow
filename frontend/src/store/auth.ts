@@ -4,7 +4,7 @@ import type { User } from '../types/user';
 // ローカルストレージからトークンを取得する関数
 const getInitialToken = (): string | null => {
 	if (typeof window !== 'undefined') {
-		return localStorage.getItem('authToken');
+		return localStorage.getItem('access_token');
 	}
 	return null;
 };
