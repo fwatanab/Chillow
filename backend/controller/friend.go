@@ -9,23 +9,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func	SendFriendRequestHandler(c *gin.Context) {
-	var req model.FriendRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+func SendFriendRequestHandler(c *gin.Context) {
+	requesterID := c.GetUint("user_id")
+
+	var body struct {
+		ReceiverID uint `json:"receiver_id"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	// 自分自身への申請は禁止
-	if req.SenderID == req.ReceiverID {
+	if requesterID == body.ReceiverID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot send request to yourself"})
 		return
 	}
 
 	// すでに pending のリクエストがあるか確認
-	exists, err := model.PendingRequestExists(req.SenderID, req.ReceiverID)
+	exists, err := model.PendingRequestExists(requesterID, body.ReceiverID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error (check pending)"})
 		return
 	}
 	if exists {
@@ -34,9 +39,9 @@ func	SendFriendRequestHandler(c *gin.Context) {
 	}
 
 	// すでにフレンドか確認
-	isFriend, err := model.AreFriends(req.SenderID, req.ReceiverID)
+	isFriend, err := model.AreFriends(requesterID, body.ReceiverID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error (check friend)"})
 		return
 	}
 	if isFriend {
@@ -44,13 +49,19 @@ func	SendFriendRequestHandler(c *gin.Context) {
 		return
 	}
 
-	// 通常の登録
-	req.Status = "pending"
-	if err := db.DB.Create(&req).Error; err != nil {
+	// 登録
+	request := model.FriendRequest{
+		RequesterID: requesterID,
+		ReceiverID:  body.ReceiverID,
+		Status:      "pending",
+	}
+
+	if err := db.DB.Create(&request).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
 		return
 	}
-	c.JSON(http.StatusOK, req)
+
+	c.JSON(http.StatusOK, request)
 }
 
 func	GetFriendRequestsHandler(c *gin.Context) {
@@ -86,8 +97,8 @@ func	RespondToFriendRequestHandler(c *gin.Context) {
 
 	// フレンド関係作成
 	if body.Status == "accepted" {
-		friend1 := model.Friend{UserID: req.SenderID, FriendID: req.ReceiverID}
-		friend2 := model.Friend{UserID: req.ReceiverID, FriendID: req.SenderID}
+		friend1 := model.Friend{UserID: req.RequesterID, FriendID: req.ReceiverID}
+		friend2 := model.Friend{UserID: req.ReceiverID, FriendID: req.RequesterID}
 		db.DB.Create(&friend1)
 		db.DB.Create(&friend2)
 	}
