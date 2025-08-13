@@ -1,7 +1,8 @@
 import { useState } from "react";
-import axios from "../utils/axios";
 import { useRecoilValue } from "recoil";
 import { currentUserState } from "../store/auth";
+import { sendFriendRequest } from "../api/friend";
+import { searchUserByCode } from "../api/user";
 
 const AddFriend = () => {
 	const [code, setCode] = useState("");
@@ -25,8 +26,7 @@ const AddFriend = () => {
 
 		try {
 			// フレンドコードでユーザーを検索
-			const searchRes = await axios.get("/users/search", { params: { code } });
-			const receiver = searchRes.data;
+			const receiver = await searchUserByCode(code);
 
 			if (!receiver || receiver.id === currentUser.id) {
 				setMessage("❌ 無効なフレンドコードです");
@@ -34,9 +34,7 @@ const AddFriend = () => {
 			}
 
 			// フレンド申請送信
-			await axios.post(`/friend-requests`, {
-				receiver_id: receiver.id,
-			});
+			await sendFriendRequest(receiver.id);
 
 			setMessage("✅ フレンド申請を送信しました");
 			setCode("");
@@ -50,6 +48,7 @@ const AddFriend = () => {
 			setLoading(false);
 		}
 	};
+
 
 	return (
 		<div className="add-friend">
