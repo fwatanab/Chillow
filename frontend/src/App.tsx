@@ -4,7 +4,7 @@ import { useRestoreUser } from './hooks/useRestoreUser';
 
 const AppInitializer = () => {
 	useRestoreUser();
-	return <AppRoutes />;
+	return null;
 };
 
 
@@ -12,6 +12,7 @@ const App = () => {
 	return (
 		<RecoilRoot>
 			<AppInitializer />
+			<AppRoutes />
 		</RecoilRoot>
 	);
 };
