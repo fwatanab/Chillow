@@ -6,6 +6,7 @@ export type Friend = {
 	friend_id: number;
 	user_nickname: string;
 	created_at: string;
+	updated_at: string;
 };
 
 export type FriendRequest = {
