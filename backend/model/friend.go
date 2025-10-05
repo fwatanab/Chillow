@@ -7,22 +7,27 @@ import (
 )
 
 type FriendRequest struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	RequesterID uint     `gorm:"json:"requester_id"`
-	ReceiverID uint      `json:"receiver_id"`
-	Status     string    `json:"status"` // "pending", "accepted", "declined"
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	RequesterID uint      `json:"requester_id"`
+	ReceiverID  uint      `json:"receiver_id"`
+	Status      string    `json:"status"` // "pending", "accepted", "declined"
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+
+	// 外部キー：users.id に対応（必要なら制約も付与可能）
+	Requester User `gorm:"foreignKey:RequesterID" json:"requester"`
 }
 
 type Friend struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    uint      `json:"user_id"`
-	FriendID  uint      `json:"friend_id"`
+	UserID    uint      `gorm:"uniqueIndex:ux_user_friend" json:"user_id"`
+	FriendID  uint      `gorm:"uniqueIndex:ux_user_friend" json:"friend_id"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func	PendingRequestExists(requesterID, receiverID uint) (bool, error) {
+// 片方向の pending 存在チェック（A->Bのみ）
+func PendingRequestExists(requesterID, receiverID uint) (bool, error) {
 	var req FriendRequest
 	err := db.DB.Where("requester_id = ? AND receiver_id = ? AND status = ?", requesterID, receiverID, "pending").
 		First(&req).Error
@@ -32,7 +37,8 @@ func	PendingRequestExists(requesterID, receiverID uint) (bool, error) {
 	return err == nil, err
 }
 
-func	AreFriends(userID1, userID2 uint) (bool, error) {
+// 片方向の友達関係があるか（A->Bのみ）
+func AreFriends(userID1, userID2 uint) (bool, error) {
 	var f Friend
 	err := db.DB.
 		Where("user_id = ? AND friend_id = ?", userID1, userID2).
@@ -42,3 +48,4 @@ func	AreFriends(userID1, userID2 uint) (bool, error) {
 	}
 	return err == nil, err
 }
+
