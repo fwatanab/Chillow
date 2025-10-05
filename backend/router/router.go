@@ -52,7 +52,7 @@ func	SetupRouter() *gin.Engine {
 
 		// フレンド一覧・削除
 		friends := api.Group("/friends")
-		users.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		friends.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
 		{
 			friends.GET("", controller.GetFriendsHandler)
 			friends.DELETE("/:id", controller.DeleteFriendHandler)
@@ -60,7 +60,7 @@ func	SetupRouter() *gin.Engine {
 
 		// メッセージ関連
 		messages := api.Group("/messages")
-		users.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		messages.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
 		{
 			messages.GET("/:friend_id", controller.GetMessagesHandler)
 			messages.POST("", controller.PostMessageHandler)
