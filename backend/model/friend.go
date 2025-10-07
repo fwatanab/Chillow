@@ -24,6 +24,8 @@ type Friend struct {
 	FriendID  uint      `gorm:"uniqueIndex:ux_user_friend" json:"friend_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+
+	FriendUser User `gorm:"foreignKey:FriendID;references:ID" json:"friend_user"`
 }
 
 // 片方向の pending 存在チェック（A->Bのみ）
