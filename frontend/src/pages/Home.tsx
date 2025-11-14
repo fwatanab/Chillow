@@ -1,16 +1,48 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { currentUserState } from "../store/auth";
 import Sidebar from "../components/layout/Sidebar";
 import ChatRoom from "../components/chat/ChatRoom";
-import FriendRequests from "../components/friends/FriendRequests";
 import type { Friend } from "../types/friend";
+import { getFriends } from "../services/api/friend";
 
 const Home = () => {
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsError, setFriendsError] = useState<string | null>(null);
   const currentUser = useRecoilValue(currentUserState);
+  const { friendId } = useParams<{ friendId?: string }>();
+  const navigate = useNavigate();
 
+  const fetchFriends = useCallback(async () => {
+    setFriendsLoading(true);
+    setFriendsError(null);
+    try {
+      const list = await getFriends();
+      setFriends(list);
+    } catch (err) {
+      console.error("❌ フレンドの取得に失敗しました", err);
+      setFriendsError("フレンドの取得に失敗しました");
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFriends();
+  }, [fetchFriends]);
+
+  const selectedFriend = useMemo(() => {
+    if (!friendId) return null;
+    return friends.find(
+      (f) => String(f.friend_id) === friendId || String(f.id) === friendId
+    ) ?? null;
+  }, [friends, friendId]);
+
+  const handleSelectFriend = (friend: Friend) => {
+    navigate(`/chat/${friend.friend_id}`);
+  };
 
   if (!currentUser) {
     return (
@@ -20,22 +52,20 @@ const Home = () => {
     );
   }
 
-
   return (
     <div className="flex h-screen text-discord-text bg-discord-background">
-      {/* 左のサイドバー全体 */}
       <Sidebar
         currentUser={currentUser}
-        onSelectFriend={setSelectedFriend}
-        showFriendRequests={showFriendRequests}
-        onToggleFriendRequests={() => setShowFriendRequests((prev) => !prev)}
+        friends={friends}
+        friendsLoading={friendsLoading}
+        friendsError={friendsError}
+        onReloadFriends={fetchFriends}
+        onSelectFriend={handleSelectFriend}
+        onOpenFriendManage={() => navigate("/friends/manage")}
       />
 
-      {/* 右側のメインビュー */}
       <main className="flex-1 flex flex-col">
-        {showFriendRequests ? (
-          <FriendRequests />
-        ) : selectedFriend ? (
+        {selectedFriend ? (
           <ChatRoom friend={selectedFriend} />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
