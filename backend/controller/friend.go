@@ -1,16 +1,35 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"chillow/db"
 	"chillow/model"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
 )
+
+type FriendRow struct {
+	ID                    uint       `json:"id"`
+	UserID                uint       `json:"user_id"`
+	FriendID              uint       `json:"friend_id"`
+	FriendNickname        string     `json:"friend_nickname"`
+	FriendAvatarURL       string     `json:"friend_avatar_url"`
+	LastMessageID         *uint      `json:"last_message_id"`
+	LastMessageContent    *string    `json:"last_message_content"`
+	LastMessageType       *string    `json:"last_message_type"`
+	LastMessageAttachment *string    `json:"last_message_attachment_url"`
+	LastMessageAt         *time.Time `json:"last_message_at"`
+	LastMessageEditedAt   *time.Time `json:"last_message_edited_at"`
+	LastMessageIsDeleted  *bool      `json:"last_message_is_deleted"`
+	LastMessageIsOwn      *bool      `json:"last_message_is_own"`
+	LastMessageSenderID   *uint      `json:"last_message_sender_id"`
+	UnreadCount           int64      `json:"unread_count"`
+}
 
 // POST /api/friend-requests
 func SendFriendRequestHandler(c *gin.Context) {
@@ -235,28 +254,57 @@ func GetFriendsHandler(c *gin.Context) {
 
 	log.Printf("🔎 userID in ctx = %d", userID)
 
-	// レスポンス用DTO
-	type FriendRow struct {
-		ID               uint    `json:"id"`
-		UserID           uint    `json:"user_id"`
-		FriendID         uint    `json:"friend_id"`
-		FriendNickname   string  `json:"friend_nickname"`
-		FriendAvatarURL  string  `json:"friend_avatar_url"`
-	}
+	lastMessageSub := db.DB.Table(`(
+		SELECT
+			m.id,
+			m.sender_id,
+			m.receiver_id,
+			m.content,
+			m.message_type,
+			m.attachment_url,
+			m.created_at,
+			m.edited_at,
+			m.is_deleted,
+			ROW_NUMBER() OVER (
+				PARTITION BY LEAST(m.sender_id, m.receiver_id), GREATEST(m.sender_id, m.receiver_id)
+				ORDER BY m.created_at DESC, m.id DESC
+			) AS rn,
+			LEAST(m.sender_id, m.receiver_id)   AS conv_low,
+			GREATEST(m.sender_id, m.receiver_id) AS conv_high
+		FROM messages m
+	) AS lm`).Where("lm.rn = 1")
 
 	var out []FriendRow
-	if err:= db.DB.Debug().
+	if err := db.DB.
 		Table("friends").
 		Select(`
 			friends.id,
 			friends.user_id,
 			friends.friend_id,
 			users.nickname  AS friend_nickname,
-			users.avatar_url AS friend_avatar_url
+			users.avatar_url AS friend_avatar_url,
+			last_msg.id AS last_message_id,
+			last_msg.content AS last_message_content,
+			last_msg.message_type AS last_message_type,
+			last_msg.attachment_url AS last_message_attachment_url,
+			last_msg.created_at AS last_message_at,
+			last_msg.edited_at AS last_message_edited_at,
+			last_msg.is_deleted AS last_message_is_deleted,
+			last_msg.sender_id AS last_message_sender_id,
+			CASE WHEN last_msg.sender_id = friends.user_id THEN TRUE ELSE FALSE END AS last_message_is_own,
+			(
+				SELECT COUNT(*)
+				FROM messages unread
+				WHERE unread.receiver_id = friends.user_id
+					AND unread.sender_id = friends.friend_id
+					AND unread.is_read = FALSE
+					AND unread.is_deleted = FALSE
+			) AS unread_count
 		`).
 		Joins("JOIN users ON users.id = friends.friend_id").
+		Joins("LEFT JOIN (?) AS last_msg ON last_msg.conv_low = LEAST(friends.user_id, friends.friend_id) AND last_msg.conv_high = GREATEST(friends.user_id, friends.friend_id)", lastMessageSub).
 		Where("friends.user_id = ?", userID).
-		Order("users.nickname ASC").
+		Order("last_message_at IS NULL, last_message_at DESC, users.nickname ASC").
 		Scan(&out).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get friends"})
 		return
@@ -285,4 +333,3 @@ func DeleteFriendHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Friend deleted"})
 }
-
