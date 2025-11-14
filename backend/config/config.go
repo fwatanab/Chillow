@@ -11,6 +11,7 @@ type Config struct {
 	GoogleClientSecret string
 	GoogleRedirectURI  string
 	FrontendURL        string
+	BackendURL         string
 	CookieDomain       string
 	CookieSecure       bool
 
@@ -31,6 +32,7 @@ func LoadConfig() {
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURI:  os.Getenv("GOOGLE_REDIRECT_URI"),
 		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:5173"),
+		BackendURL:         getEnv("BACKEND_URL", "http://localhost:8080"),
 		CookieDomain:       getEnv("COOKIE_DOMAIN", "localhost"),
 		CookieSecure:       parseBool(getEnv("COOKIE_SECURE", "false")),
 
