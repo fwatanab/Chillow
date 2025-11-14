@@ -1,28 +1,60 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AddFriend from "../components/friends/AddFriend";
 import FriendRequests from "../components/friends/FriendRequests";
-import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/layout/Sidebar";
+import { useFriendsData } from "../hooks/useFriendsData";
+import { useRecoilValue } from "recoil";
+import { currentUserState } from "../store/auth";
+
+const tabs = [
+  { key: "add", label: "フレンド追加" },
+  { key: "requests", label: "申請一覧" },
+] as const;
+
+type TabKey = typeof tabs[number]["key"];
 
 const FriendManage = () => {
   const navigate = useNavigate();
+  const currentUser = useRecoilValue(currentUserState);
+  const { friends, loading, error, reload } = useFriendsData();
+  const [activeTab, setActiveTab] = useState<TabKey>("add");
 
   return (
-    <div className="min-h-screen bg-discord-background text-discord-text p-6 space-y-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="text-sm text-discord-accent hover:underline"
-      >
-        ← 戻る
-      </button>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-discord-sidebar p-4 rounded shadow">
-          <h2 className="text-lg font-semibold mb-4">フレンドを追加</h2>
-          <AddFriend />
+    <div className="flex h-screen bg-discord-background text-discord-text">
+      <Sidebar
+        currentUser={currentUser}
+        friends={friends}
+        friendsLoading={loading}
+        friendsError={error}
+        onReloadFriends={reload}
+        onSelectFriend={(friend) => navigate(`/chat/${friend.friend_id}`)}
+        onOpenFriendManage={() => {}}
+      />
+      <main className="flex-1 p-6 space-y-4">
+        <div className="flex gap-4 border-b border-gray-700">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`pb-2 px-2 border-b-2 ${
+                activeTab === tab.key ? "border-discord-accent text白" : "border-transparent text-gray-400"
+              }`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="bg-discord-sidebar p-4 rounded shadow">
-          <h2 className="text-lg font-semibold mb-4">フレンド申請</h2>
-          <FriendRequests />
-        </div>
-      </div>
+        {activeTab === "add" ? (
+          <div className="bg-discord-sidebar p-4 rounded shadow">
+            <AddFriend onFriendAdded={reload} existingFriends={friends} />
+          </div>
+        ) : (
+          <div className="bg-discord-sidebar p-4 rounded shadow">
+            <FriendRequests onResponded={reload} />
+          </div>
+        )}
+      </main>
     </div>
   );
 };
