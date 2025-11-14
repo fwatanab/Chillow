@@ -1,57 +1,47 @@
 package middleware
 
 import (
-	"chillow/config"
 	"net/http"
 	"strings"
 
+	authsvc "chillow/service/auth"
+
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Authorization: Bearer <token>
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorizationヘッダーがありません"})
-			return
-		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Bearerトークン形式ではありません"})
-			return
-		}
-
-		tokenStr := parts[1]
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
+		tokenStr := extractBearerToken(c.GetHeader("Authorization"))
+		if tokenStr == "" {
+			if cookie, err := c.Cookie(authsvc.AccessTokenCookieName); err == nil {
+				tokenStr = cookie
 			}
-			return []byte(config.Cfg.JWTSecret), nil
-		})
+		}
 
-		if err != nil || !token.Valid {
+		if tokenStr == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証情報がありません"})
+			return
+		}
+
+		claims, err := authsvc.ParseAccessToken(tokenStr)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "無効なトークンです"})
 			return
 		}
 
-		// トークンのclaimからuser_idを取得
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			userID, ok := claims["user_id"].(float64)
-			if !ok {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "トークンにuser_idが含まれていません"})
-				return
-			}
-			// contextにuserIDを保存
-			c.Set("user_id", uint(userID))
-		} else {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "不正なトークン形式です"})
-			return
-		}
-
+		c.Set("user_id", claims.UserID)
+		c.Set("user_role", claims.Role)
 		c.Next()
 	}
 }
 
+func extractBearerToken(header string) string {
+	if header == "" {
+		return ""
+	}
+	parts := strings.Split(header, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return ""
+	}
+	return parts[1]
+}
