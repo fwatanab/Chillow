@@ -2,71 +2,57 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down build restart logs logs-backend logs-frontend logs-db ps \
-        exec-backend exec-frontend exec-db clean reset-db
+DOCKER_COMPOSE ?= docker compose
+SERVICE ?= backend
+SHELL_CMD ?= sh
 
-up:
-	docker-compose up -d
+.PHONY: help up dev down build build-backend build-frontend images restart logs ps exec clean reset-db
 
-down:
-	docker-compose down
+up: ## コンテナをバックグラウンドで立ち上げ
+	$(DOCKER_COMPOSE) up -d
 
-build:
-	docker-compose build
+dev: ## フォアグラウンドで起動（ログ確認用）
+	$(DOCKER_COMPOSE) up
 
-restart:
-	docker-compose down && docker-compose up -d --build
+down: ## すべてのコンテナ停止
+	$(DOCKER_COMPOSE) down
 
-logs:
-	docker-compose logs -f
+build: build-frontend build-backend ## フロント/バックをローカルビルド
 
-logs-backend:
-	docker-compose logs -f backend
+build-frontend:
+	cd frontend && npm install && npm run build
 
-logs-frontend:
-	docker-compose logs -f frontend
+build-backend:
+	cd backend && go build ./...
 
-logs-db:
-	docker-compose logs -f db
+images: ## Dockerイメージだけをビルド
+	$(DOCKER_COMPOSE) build
 
-ps:
-	docker-compose ps
+restart: ## 再ビルド付きで再起動
+	$(DOCKER_COMPOSE) down
+	$(DOCKER_COMPOSE) up -d --build
 
-exec-backend:
-	docker-compose exec backend sh
+logs: ## ログをフォロー（例：make logs SERVICE=frontend）
+	$(DOCKER_COMPOSE) logs -f $(SERVICE)
 
-exec-frontend:
-	docker-compose exec frontend sh
+ps: ## コンテナ状態の一覧表示
+	$(DOCKER_COMPOSE) ps
 
-exec-db:
-	docker-compose exec db bash
+exec: ## コンテナに入る（例：make exec SERVICE=db SHELL_CMD=bash）
+	$(DOCKER_COMPOSE) exec $(SERVICE) $(SHELL_CMD)
 
-clean:
-	docker-compose down -v --remove-orphans
+clean: ## コンテナとボリュームを全削除
+	$(DOCKER_COMPOSE) down -v --remove-orphans
 
-reset-db:
-	docker-compose down -v --remove-orphans
+reset-db: ## DBボリュームを初期化して再起動
+	$(DOCKER_COMPOSE) down -v --remove-orphans
 	rm -rf db/data || true
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 
-help:
+help: ## コマンド一覧を表示
 	@echo ""
 	@echo "📘 Chillow 開発用 Makefile コマンド一覧"
 	@echo "------------------------------------------"
-	@echo "make up            # コンテナ起動（バックグラウンド）"
-	@echo "make down          # コンテナ停止"
-	@echo "make build         # イメージのビルド"
-	@echo "make restart       # 再ビルド付きで再起動"
-	@echo "make logs          # 全体のログを表示"
-	@echo "make logs-backend  # バックエンドログを表示"
-	@echo "make logs-frontend # フロントエンドログを表示"
-	@echo "make logs-db       # データベースログを表示"
-	@echo "make ps            # コンテナの状態一覧表示"
-	@echo "make exec-backend  # バックエンドに入る（sh）"
-	@echo "make exec-frontend # フロントエンドに入る（sh）"
-	@echo "make exec-db       # DBに入る（bash）"
-	@echo "make clean         # コンテナとボリュームを削除"
-	@echo "make reset-db      # DBボリュームを初期化して再起動"
-	@echo "make help          # この使い方一覧を表示"
+	@grep -E '^[a-zA-Z_-]+:.*?## .+' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "make %-10s %s\n", $$1, $$2}'
 	@echo ""
-
