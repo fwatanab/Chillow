@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useRecoilValue } from "recoil";
-import { currentUserState } from "../store/auth";
-import { sendFriendRequest } from "../api/friend";
-import { searchUserByCode } from "../api/user";
+import { currentUserState } from "../../store/auth";
+import { sendFriendRequest } from "../../services/api/friend";
+import { searchUserByCode } from "../../services/api/user";
 
 const AddFriend = () => {
 	const [code, setCode] = useState("");

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { MessagePayload } from "../types/chat";
-import type { Friend } from "../types/friend";
-import { useChatSocket } from "../hooks/useChatSocket";
+import type { MessagePayload } from "../../types/chat";
+import type { Friend } from "../../types/friend";
+import { useChatSocket } from "../../hooks/useChatSocket";
 
 interface Props {
   friend: Friend;
@@ -10,7 +10,7 @@ interface Props {
 const ChatRoom = ({ friend }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const { sendMessage, messages } = useChatSocket(friend.id);
+  const { sendMessage, messages } = useChatSocket(friend.friend_id);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,7 +27,7 @@ const ChatRoom = ({ friend }: Props) => {
   return (
     <div className="flex flex-col h-full bg-discord-background text-discord-text">
       <header className="p-4 font-bold border-b border-gray-600">
-        {friend.user_nickname}
+        {friend.friend_nickname}
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((msg: MessagePayload, idx: number) => (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "../utils/axios";
-import type { Friend } from "../types/friend";
+import axios from "../../utils/axios";
+import type { Friend } from "../../types/friend";
 
 type Props = {
   onSelectFriend: (friend: Friend) => void;

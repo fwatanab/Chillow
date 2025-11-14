@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../utils/axios";
+import axios from "../../utils/axios";
 
 interface Friend {
 	id: number;
@@ -31,10 +31,7 @@ const ChatList = () => {
 // 🔽 friendsが上書きされるのでbackend実装するまでコメントアウト
 		const fetchFriends = async () => {
 		try {
-			const token = localStorage.getItem("access_token");
-			const res = await axios.get("/friends", {
-			  headers: { Authorization: `Bearer ${token}` },
-			});
+			const res = await axios.get("/friends");
 			setFriends(res.data);
 		} catch (err) {
 			console.error("友達一覧の取得に失敗しました", err);
@@ -106,4 +103,3 @@ const ChatList = () => {
 };
 
 export default ChatList;
-

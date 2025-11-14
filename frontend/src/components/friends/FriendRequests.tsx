@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getFriendRequests, respondToFriendRequest } from "../api/friend";
-import type { FriendRequestStatus } from "../types/friend";
+import { getFriendRequests, respondToFriendRequest } from "../../services/api/friend";
+import type { FriendRequestStatus } from "../../types/friend";
 
 type FriendRequest = {
   id: number;
