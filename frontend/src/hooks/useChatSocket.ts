@@ -1,59 +1,75 @@
-import { useEffect, useRef } from "react";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useEffect, useMemo } from "react";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { chatMessagesState, currentChatFriendState } from "../recoil/chatState";
-import { getAccessToken } from "../utils/auth";
-import type { MessagePayload } from "../types/chat";
+import { currentUserState } from "../store/auth";
+import { fetchMessages } from "../services/api/chat";
+import { useWebSocket } from "./useWebSocket";
+import { buildRoomId } from "../utils/chat";
 
-const WS_BASE_URL = "ws://localhost:8080/ws/chat";
-
-export function useChatSocket(friendId: number) {
-	const [messages, setMessages] = useRecoilState(chatMessagesState(friendId));
+export function useChatSocket(friendUserId: number) {
+	const currentUser = useRecoilValue(currentUserState);
+	const [messages, setMessages] = useRecoilState(chatMessagesState(friendUserId));
 	const setCurrentFriend = useSetRecoilState(currentChatFriendState);
-	const ws = useRef<WebSocket | null>(null);
+	const { send, join, onType, connect } = useWebSocket();
 
+	const roomId = useMemo(() => {
+		if (!currentUser) return "";
+		return buildRoomId(currentUser.id, friendUserId);
+	}, [currentUser, friendUserId]);
+
+	// 履歴を取得
 	useEffect(() => {
-		const token = getAccessToken();
-		if (!token) return;
+		if (!currentUser) return;
 
-		const socket = new WebSocket(`${WS_BASE_URL}?token=${token}`);
-		ws.current = socket;
+		fetchMessages(friendUserId)
+			.then((data) => {
+				const normalized = (data ?? []).map((msg) => ({
+					id: msg.id,
+					sender_id: msg.sender_id,
+					receiver_id: msg.receiver_id,
+					content: msg.content,
+					created_at: msg.created_at,
+					isOwn: msg.sender_id === currentUser.id,
+				}));
+				setMessages(normalized);
+			})
+			.catch((err) => console.error("❌ メッセージ取得に失敗", err));
+	}, [friendUserId, currentUser, setMessages]);
 
-		socket.onopen = () => {
-			console.log("WebSocket connected");
-			setCurrentFriend(friendId);
-		};
+	// WebSocket購読
+	useEffect(() => {
+		if (!currentUser || !roomId) return;
 
-		socket.onmessage = (event) => {
-			try {
-				const msg: MessagePayload = JSON.parse(event.data);
-				if (msg.type === "message" && msg.sender_id === friendId) {
-					setMessages((prev) => [...prev, msg]);
-				}
-			} catch (err) {
-				console.error("Invalid message: ", err);
-			}
-		};
+		connect();
+		join(roomId);
+		setCurrentFriend(friendUserId);
 
-		socket.onclose = () => {
-			console.log("WebSocket closed");
-		};
+		const unsubscribe = onType("message:new", (event) => {
+			if (event.roomId !== roomId) return;
+
+			setMessages((prev) => [
+				...prev,
+				{
+					id: event.message.id,
+					sender_id: event.message.sender_id,
+					receiver_id: event.message.receiver_id,
+					content: event.message.content,
+					created_at: event.message.created_at,
+					isOwn: event.message.sender_id === currentUser.id,
+				},
+			]);
+		});
 
 		return () => {
-			socket.close();
+			unsubscribe();
+			setCurrentFriend((prev) => (prev === friendUserId ? null : prev));
 		};
-	}, [friendId, setMessages, setCurrentFriend]);
+	}, [currentUser, friendUserId, join, onType, roomId, setCurrentFriend, setMessages, connect]);
 
 	const sendMessage = (content: string) => {
-		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-			const payload = {
-				type: "message",
-				receiver_id: friendId,
-				content,
-			};
-			ws.current.send(JSON.stringify(payload));
-		}
+		if (!content.trim() || !roomId) return;
+		send({ type: "message:send", roomId, content: content.trim() });
 	};
 
 	return { sendMessage, messages };
 }
-
