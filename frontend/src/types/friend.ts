@@ -8,6 +8,17 @@ export type Friend = {
 	friend_avatar_url: string | null;
 	created_at: string;
 	updated_at: string;
+	last_message_id?: number | null;
+	last_message_content?: string | null;
+	last_message_type?: string | null;
+	last_message_attachment_url?: string | null;
+	last_message_at?: string | null;
+	last_message_edited_at?: string | null;
+	last_message_is_deleted?: boolean | null;
+	last_message_is_own?: boolean | null;
+	last_message_sender_id?: number | null;
+	unread_count?: number;
+	is_online?: boolean;
 };
 
 export type FriendRequest = {
@@ -19,4 +30,3 @@ export type FriendRequest = {
 	created_at: string;
 	updated_at: string;
 };
-
