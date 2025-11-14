@@ -1,37 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { currentUserState } from "../store/auth";
 import Sidebar from "../components/layout/Sidebar";
 import ChatRoom from "../components/chat/ChatRoom";
 import type { Friend } from "../types/friend";
-import { getFriends } from "../services/api/friend";
+import { useFriendsData } from "../hooks/useFriendsData";
 
 const Home = () => {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [friendsLoading, setFriendsLoading] = useState(false);
-  const [friendsError, setFriendsError] = useState<string | null>(null);
+  const { friends, loading: friendsLoading, error: friendsError, reload } = useFriendsData();
   const currentUser = useRecoilValue(currentUserState);
   const { friendId } = useParams<{ friendId?: string }>();
   const navigate = useNavigate();
-
-  const fetchFriends = useCallback(async () => {
-    setFriendsLoading(true);
-    setFriendsError(null);
-    try {
-      const list = await getFriends();
-      setFriends(list);
-    } catch (err) {
-      console.error("❌ フレンドの取得に失敗しました", err);
-      setFriendsError("フレンドの取得に失敗しました");
-    } finally {
-      setFriendsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchFriends();
-  }, [fetchFriends]);
 
   const selectedFriend = useMemo(() => {
     if (!friendId) return null;
@@ -59,7 +39,7 @@ const Home = () => {
         friends={friends}
         friendsLoading={friendsLoading}
         friendsError={friendsError}
-        onReloadFriends={fetchFriends}
+        onReloadFriends={reload}
         onSelectFriend={handleSelectFriend}
         onOpenFriendManage={() => navigate("/friends/manage")}
       />
