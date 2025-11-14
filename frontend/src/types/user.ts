@@ -2,7 +2,7 @@ export type User = {
 	id: number;
 	nickname: string;
 	email: string;
-	friendCode: string;
-	avatarUrl: string;
+	friend_code: string;
+	avatar_url: string | null;
+	role: string;
 };
-
