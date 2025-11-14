@@ -2,71 +2,82 @@ package ws
 
 import (
 	"encoding/json"
-	"log"
 	"time"
+
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
-	hub    *Hub
-	conn   *websocket.Conn
-	send   chan MessagePayload
-	userID uint
+	userID      uint
+	conn        *websocket.Conn
+	hub         *Hub
+	send        chan []byte
+	joinedRooms map[string]struct{}
 }
 
-func (c *Client) ReadPump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	c.conn.SetReadLimit(512)
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-		return nil
-	})
+func NewClient(userID uint, conn *websocket.Conn, hub *Hub) *Client {
+	return &Client{
+		userID:      userID,
+		conn:        conn,
+		hub:         hub,
+		send:        make(chan []byte, 256),
+		joinedRooms: make(map[string]struct{}),
+	}
+}
 
+func (c *Client) Start() {
+	go c.writeLoop()
+	go c.readLoop()
+}
+
+func (c *Client) readLoop() {
+	defer c.Close()
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Println("read error:", err)
 			break
 		}
-		var payload MessagePayload
-		if err := json.Unmarshal(message, &payload); err != nil {
-			log.Println("unmarshal error:", err)
-			continue
-		}
-		payload.SenderID = c.userID
-		payload.Timestamp = time.Now().UTC().Format(time.RFC3339)
-		c.hub.broadcast <- payload
+		Dispatch(c, msg)
 	}
 }
 
-func (c *Client) WritePump() {
-	ticker := time.NewTicker(54 * time.Second)
-	defer func() {
-		ticker.Stop()
-		c.conn.Close()
-	}()
-
+func (c *Client) writeLoop() {
+	defer c.Close()
 	for {
 		select {
-		case message, ok := <-c.send:
+		case msg, ok := <-c.send:
+			if !ok { return }
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-			msg, _ := json.Marshal(message)
-			c.conn.WriteMessage(websocket.TextMessage, msg)
-
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return
 			}
 		}
 	}
 }
 
+func (c *Client) Close() {
+	// ルーム離脱
+	for roomID := range c.joinedRooms {
+		c.hub.Leave(roomID, c)
+	}
+	// チャネルクローズ & コネクションクローズ
+	select { case <-c.send: default: }
+	close(c.send)
+	_ = c.conn.Close()
+}
+
+func (c *Client) joinRoom(roomID string) {
+	c.joinedRooms[roomID] = struct{}{}
+	c.hub.Join(roomID, c)
+}
+
+func (c *Client) sendJSON(v any) error {
+	b, err := json.Marshal(v)
+	if err != nil { return err }
+	select {
+	case c.send <- b:
+	default:
+		go c.Close()
+	}
+	return nil
+}

@@ -1,48 +1,64 @@
 package ws
 
-import (
-	"log"
-	"time"
-	"github.com/gorilla/websocket"
-)
-
 type Hub struct {
-	clients    map[uint]*Client     // ユーザーIDをキーとしたクライアント一覧
-	broadcast  chan MessagePayload  // すべてのクライアントにブロードキャストするメッセージ
-	register   chan *Client         // 接続登録用
-	unregister chan *Client         // 切断通知用
+	rooms map[string]*Room
+
+	// ルーム操作用のチャネル（Runでselect）
+	join    chan joinReq
+	leave   chan leaveReq
+	broadcast chan broadcastReq
+}
+
+type joinReq struct {
+	roomID string
+	client *Client
+}
+type leaveReq struct {
+	roomID string
+	client *Client
+}
+type broadcastReq struct {
+	roomID string
+	bytes  []byte
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[uint]*Client),
-		broadcast:  make(chan MessagePayload),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		rooms:     make(map[string]*Room),
+		join:      make(chan joinReq),
+		leave:     make(chan leaveReq),
+		broadcast: make(chan broadcastReq),
 	}
 }
 
 func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
-			h.clients[client.userID] = client
-			log.Printf("User %d connected\n", client.userID)
-
-		case client := <-h.unregister:
-			if _, ok := h.clients[client.userID]; ok {
-				delete(h.clients, client.userID)
-				close(client.send)
-				log.Printf("User %d disconnected\n", client.userID)
+		case j := <-h.join:
+			r := h.getOrCreateRoom(j.roomID)
+			r.Add(j.client)
+		case l := <-h.leave:
+			if r, ok := h.rooms[l.roomID]; ok {
+				r.Remove(l.client)
 			}
-
-		case message := <-h.broadcast:
-			if receiver, ok := h.clients[message.ReceiverID]; ok {
-				receiver.send <- message
-			} else {
-				log.Printf("User %d not connected\n", message.ReceiverID)
+		case b := <-h.broadcast:
+			if r, ok := h.rooms[b.roomID]; ok {
+				r.Broadcast(b.bytes)
 			}
 		}
 	}
 }
 
+func (h *Hub) getOrCreateRoom(id string) *Room {
+	if r, ok := h.rooms[id]; ok {
+		return r
+	}
+	r := NewRoom(id)
+	h.rooms[id] = r
+	return r
+}
+
+// 外部から呼ぶAPI
+func (h *Hub) Join(roomID string, c *Client)      { h.join <- joinReq{roomID: roomID, client: c} }
+func (h *Hub) Leave(roomID string, c *Client)     { h.leave <- leaveReq{roomID: roomID, client: c} }
+func (h *Hub) Broadcast(roomID string, b []byte)  { h.broadcast <- broadcastReq{roomID: roomID, bytes: b} }
