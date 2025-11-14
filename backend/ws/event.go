@@ -43,7 +43,7 @@ func handleJoin(c *Client, msg []byte) {
 		log.Printf("⚠️ unauthorized room access. user=%d room=%s", c.userID, e.RoomID)
 		return
 	}
-	c.hub.Join(e.RoomID, c)
+	c.joinRoom(e.RoomID)
 	log.Printf("👥 user %d joined %s", c.userID, e.RoomID)
 }
 

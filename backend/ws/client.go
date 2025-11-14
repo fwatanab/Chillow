@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -13,6 +14,7 @@ type Client struct {
 	hub         *Hub
 	send        chan []byte
 	joinedRooms map[string]struct{}
+	closeOnce   sync.Once
 }
 
 func NewClient(userID uint, conn *websocket.Conn, hub *Hub) *Client {
@@ -46,7 +48,9 @@ func (c *Client) writeLoop() {
 	for {
 		select {
 		case msg, ok := <-c.send:
-			if !ok { return }
+			if !ok {
+				return
+			}
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return
@@ -56,24 +60,30 @@ func (c *Client) writeLoop() {
 }
 
 func (c *Client) Close() {
-	// ルーム離脱
-	for roomID := range c.joinedRooms {
-		c.hub.Leave(roomID, c)
-	}
-	// チャネルクローズ & コネクションクローズ
-	select { case <-c.send: default: }
-	close(c.send)
-	_ = c.conn.Close()
+	c.closeOnce.Do(func() {
+		// ルーム離脱
+		for roomID := range c.joinedRooms {
+			c.hub.Leave(roomID, c)
+		}
+		// チャネルクローズ & コネクションクローズ
+		close(c.send)
+		_ = c.conn.Close()
+	})
 }
 
 func (c *Client) joinRoom(roomID string) {
+	if _, exists := c.joinedRooms[roomID]; exists {
+		return
+	}
 	c.joinedRooms[roomID] = struct{}{}
 	c.hub.Join(roomID, c)
 }
 
 func (c *Client) sendJSON(v any) error {
 	b, err := json.Marshal(v)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	select {
 	case c.send <- b:
 	default:
