@@ -11,6 +11,7 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+	r.Static("/uploads", "./uploads")
 
 	// CORS 設定
 	r.Use(cors.New(cors.Config{
@@ -68,7 +69,10 @@ func SetupRouter() *gin.Engine {
 		{
 			messages.GET("/:friend_id", controller.GetMessagesHandler)
 			messages.POST("", controller.PostMessageHandler)
+			messages.POST("/media", controller.UploadMessageMediaHandler)
 			messages.POST("/:id/read", controller.MarkMessageAsReadHandler)
+			messages.PATCH("/:id", controller.UpdateMessageHandler)
+			messages.DELETE("/:id", controller.DeleteMessageHandler)
 		}
 
 		// 管理者専用
