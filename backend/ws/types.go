@@ -2,42 +2,68 @@ package ws
 
 // MessageDTO ... チャットメッセージの内容
 type MessageDTO struct {
-	ID         uint   `json:"id"`
-	RoomID     string `json:"room_id"`
-	SenderID   uint   `json:"sender_id"`
-	ReceiverID uint   `json:"receiver_id"`
-	Content    string `json:"content"`
-	CreatedAt  string `json:"created_at"` // ISO8601文字列で返す予定
+	ID            uint    `json:"id"`
+	RoomID        string  `json:"room_id"`
+	SenderID      uint    `json:"sender_id"`
+	ReceiverID    uint    `json:"receiver_id"`
+	Content       string  `json:"content"`
+	MessageType   string  `json:"message_type"`
+	AttachmentURL *string `json:"attachment_url"`
+	IsDeleted     bool    `json:"is_deleted"`
+	IsRead        bool    `json:"is_read"`
+	CreatedAt     string  `json:"created_at"`
+	EditedAt      *string `json:"edited_at"`
 }
 
-// WsReceiveEvent ... サーバー→クライアントへ送るイベント
-type WsReceiveEvent struct {
-	Type    string     `json:"type"` // e.g. "message:new"
+type MessageEvent struct {
+	Type    string     `json:"type"`
 	RoomID  string     `json:"roomId"`
-	Message MessageDTO `json:"message"` // 受信メッセージの本体
+	Message MessageDTO `json:"message"`
 }
 
-type RecvBase struct {
-	Type string `json:"type"`
+type PresenceEvent struct {
+	Type   string `json:"type"`
+	RoomID string `json:"roomId"`
+	Users  []uint `json:"users"`
+}
+
+type TypingBroadcast struct {
+	Type   string `json:"type"`
+	RoomID string `json:"roomId"`
+	UserID uint   `json:"userId"`
 }
 
 type JoinEvent struct {
-	Type   string `json:"type"` // "join"
+	Type   string `json:"type"`
 	RoomID string `json:"roomId"`
 }
 
 type SendMessageEvent struct {
-	Type    string `json:"type"` // "message:send"
-	RoomID  string `json:"roomId"`
-	Content string `json:"content"`
+	Type          string  `json:"type"`
+	RoomID        string  `json:"roomId"`
+	Content       string  `json:"content"`
+	MessageType   string  `json:"messageType"`
+	AttachmentURL *string `json:"attachmentUrl"`
+}
+
+type EditMessageEvent struct {
+	Type      string `json:"type"`
+	RoomID    string `json:"roomId"`
+	MessageID uint   `json:"messageId"`
+	Content   string `json:"content"`
+}
+
+type DeleteMessageEvent struct {
+	Type      string `json:"type"`
+	RoomID    string `json:"roomId"`
+	MessageID uint   `json:"messageId"`
+}
+
+type TypingEvent struct {
+	Type   string `json:"type"`
+	RoomID string `json:"roomId"`
 }
 
 type PongEvent struct {
-	Type string `json:"type"` // "pong"
-}
-
-type NewMessageEvent struct { // サーバ→クライアント
-	Type    string     `json:"type"` // "message:new"
-	RoomID  string     `json:"roomId"`
-	Message MessageDTO `json:"message"`
+	Type string `json:"type"`
 }
