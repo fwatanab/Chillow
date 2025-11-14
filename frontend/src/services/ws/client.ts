@@ -7,6 +7,8 @@ type TypeHandler<T extends WsReceiveEvent["type"]> =
 export class WSClient {
 	private baseUrl: string;
 	private ws: WebSocket | null = null;
+	private pendingEvents: WsSendEvent[] = [];
+	private joinedRooms = new Set<string>();
 
 	private anyListeners = new Set<ReceiveHandler>();
 	private typedListeners = new Map<WsReceiveEvent["type"], Set<ReceiveHandler>>();
@@ -27,17 +29,26 @@ export class WSClient {
 	}
 
 	connect() {
+		if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+			return;
+		}
 		this.shouldReconnect = true;
 
 		this.clearReconnectTimer();
 		this.clearHeartbeat();
-		this.ws?.close();
+		if (this.ws) {
+			try { this.ws.close(); } catch {}
+		}
 
 		this.ws = new WebSocket(this.baseUrl);
 
 		this.ws.onopen = () => {
 			this.reconnectAttempts = 0;
 			this.startHeartbeat();
+			this.joinedRooms.forEach((roomId) => {
+				this.directSend({ type: "join", roomId });
+			});
+			this.flushPending();
 		};
 
 		this.ws.onmessage = (e) => this.handleMessage(e);
@@ -63,11 +74,13 @@ export class WSClient {
 	}
 	
 	send(event: WsSendEvent) {
-		if (!this.isConnected()) return;
-		try { this.ws!.send(JSON.stringify(event)); } catch {}
+		if (!this.directSend(event)) {
+			this.pendingEvents.push(event);
+		}
 	}
 
 	join(roomId: string) {
+		this.joinedRooms.add(roomId);
 		this.send({ type: "join", roomId });
 	}
 
@@ -142,6 +155,29 @@ export class WSClient {
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = null;
+		}
+	}
+
+	private directSend(event: WsSendEvent): boolean {
+		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+			return false;
+		}
+		try {
+			this.ws.send(JSON.stringify(event));
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private flushPending() {
+		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+			return;
+		}
+		while (this.pendingEvents.length > 0) {
+			const event = this.pendingEvents.shift();
+			if (!event) continue;
+			this.directSend(event);
 		}
 	}
 }

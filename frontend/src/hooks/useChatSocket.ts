@@ -10,7 +10,7 @@ export function useChatSocket(friendUserId: number) {
 	const currentUser = useRecoilValue(currentUserState);
 	const [messages, setMessages] = useRecoilState(chatMessagesState(friendUserId));
 	const setCurrentFriend = useSetRecoilState(currentChatFriendState);
-	const { send, join, onType, connect } = useWebSocket();
+	const { send, join, onType } = useWebSocket();
 
 	const roomId = useMemo(() => {
 		if (!currentUser) return "";
@@ -40,7 +40,6 @@ export function useChatSocket(friendUserId: number) {
 	useEffect(() => {
 		if (!currentUser || !roomId) return;
 
-		connect();
 		join(roomId);
 		setCurrentFriend(friendUserId);
 
@@ -64,7 +63,7 @@ export function useChatSocket(friendUserId: number) {
 			unsubscribe();
 			setCurrentFriend((prev) => (prev === friendUserId ? null : prev));
 		};
-	}, [currentUser, friendUserId, join, onType, roomId, setCurrentFriend, setMessages, connect]);
+	}, [currentUser, friendUserId, join, onType, roomId, setCurrentFriend, setMessages]);
 
 	const sendMessage = (content: string) => {
 		if (!content.trim() || !roomId) return;
