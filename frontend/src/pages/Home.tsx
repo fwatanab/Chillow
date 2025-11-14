@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useRecoilValue } from "recoil";
 import { currentUserState } from "../store/auth";
 import Sidebar from "../components/layout/Sidebar";
-import ChatRoom from "../components/ChatRoom";
-import FriendRequests from "../components/FriendRequests";
+import ChatRoom from "../components/chat/ChatRoom";
+import FriendRequests from "../components/friends/FriendRequests";
 import type { Friend } from "../types/friend";
 
 const Home = () => {
@@ -11,7 +11,6 @@ const Home = () => {
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const currentUser = useRecoilValue(currentUserState);
 
-  console.log("👤 currentUser:", currentUser); // デバッグ
 
   if (!currentUser) {
     return (
