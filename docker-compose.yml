@@ -1,29 +1,42 @@
 services:
   frontend:
-    build: ./frontend
+    image: node:20-bookworm
+    working_dir: /app
     env_file:
       - .env
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     ports:
-      - "3443:3443"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
     depends_on:
-      - backend
-    restart: always
+      backend:
+        condition: service_started
+    restart: unless-stopped
 
   backend:
-    build: ./backend
+    image: golang:1.24-bookworm
+    working_dir: /app
     env_file:
       - .env
+    command: sh -c "go mod download && go run main.go"
     ports:
-      - "8443:8443"
+      - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
-    restart: always
+    volumes:
+      - ./backend:/app
+      - backend-go-mod:/go/pkg/mod
+      - backend-go-cache:/root/.cache/go-build
+    restart: unless-stopped
 
   db:
     image: mysql:8.0
@@ -40,7 +53,13 @@ services:
     volumes:
       - chillow-mysql-data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d
-    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -54,7 +73,10 @@ services:
       PMA_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       - db
-    restart: always
+    restart: unless-stopped
 
 volumes:
-  chillow-mysql-data: # MySQLの永続データ
+  chillow-mysql-data:
+  frontend-node-modules:
+  backend-go-mod:
+  backend-go-cache:
