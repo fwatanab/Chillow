@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { getFriendRequests, respondToFriendRequest } from "../../services/api/friend";
 import type { FriendRequestStatus } from "../../types/friend";
 
+type Props = {
+  onResponded?: () => void;
+};
+
 type FriendRequest = {
   id: number;
   requester_id: number;
@@ -13,7 +17,7 @@ type FriendRequest = {
   };
 };
 
-const FriendRequests = () => {
+const FriendRequests = ({ onResponded }: Props) => {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState<Record<number, boolean>>({});
 
@@ -39,6 +43,7 @@ const FriendRequests = () => {
     try {
       await respondToFriendRequest(id, status);
       await fetchRequests();
+      onResponded?.();
     } catch (error) {
       console.error("❌ 応答に失敗しました", error);
     } finally {
@@ -109,4 +114,3 @@ const FriendRequests = () => {
 };
 
 export default FriendRequests;
-
