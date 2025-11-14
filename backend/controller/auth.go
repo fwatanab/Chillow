@@ -1,15 +1,15 @@
 package controller
 
 import (
+	"context"
+	"log"
+	"net/http"
+
 	"chillow/config"
 	"chillow/model"
-	"context"
-	"net/http"
-	"time"
-	"log"
+	authsvc "chillow/service/auth"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/api/idtoken"
 )
 
@@ -45,35 +45,18 @@ func GoogleLoginHandler(c *gin.Context) {
 
 	log.Printf("✅ IDトークン検証成功: email=%s, name=%s", email, name)
 
-	// JWTトークン発行
-	token, err := generateJWT(user.ID)
+	// アクセストークン発行＆Cookieに設定
+	token, expiresAt, err := authsvc.GenerateAccessToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "トークン生成に失敗しました"})
 		return
 	}
+	authsvc.SetAuthCookie(c, token, expiresAt)
 
-	log.Printf("🔐 JWT発行成功: userID=%d", user.ID)
-
-	c.JSON(http.StatusOK, gin.H{
-		"user": gin.H{
-			"id":          user.ID,
-			"nickname":    user.Nickname,
-			"email":       user.Email,
-			"friend_code": user.FriendCode,
-			"avatar_url":  user.AvatarURL,
-		},
-		"token": token,
-	})
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
-// JWTを生成
-func generateJWT(userID uint) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-		"iat":     time.Now().Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(config.Cfg.JWTSecret))
+func LogoutHandler(c *gin.Context) {
+	authsvc.ClearAuthCookie(c)
+	c.Status(http.StatusNoContent)
 }
-
