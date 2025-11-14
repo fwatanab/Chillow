@@ -1,22 +1,24 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
+	"chillow/config"
 	"chillow/controller"
 	"chillow/middleware"
+
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
-func	SetupRouter() *gin.Engine {
+func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// CORS 設定
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://localhost:3443"}, // フロントのURLを明示的に指定
+		AllowOrigins:     []string{config.Cfg.FrontendURL}, // フロントのURLを明示的に指定
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 	}))
 
 	// ヘルスチェック
@@ -24,12 +26,14 @@ func	SetupRouter() *gin.Engine {
 		c.JSON(200, gin.H{"message": "pong"})
 	})
 
+	// API
 	api := r.Group("/api")
 	{
 		// 認証系
 		auth := api.Group("/auth")
 		{
 			auth.POST("/google", controller.GoogleLoginHandler)
+			auth.POST("/logout", controller.LogoutHandler)
 		}
 
 		// ユーザー情報
@@ -67,10 +71,19 @@ func	SetupRouter() *gin.Engine {
 			messages.POST("/:id/read", controller.MarkMessageAsReadHandler)
 		}
 
-// 		// 通知関連（未読件数など）
-// 		api.GET("/unread-counts", controller.GetUnreadCountsHandler)
+		// 管理者専用
+		admin := api.Group("/admin")
+		admin.Use(middleware.AuthMiddleware(), middleware.RequireRoles("admin"))
+		{
+			admin.GET("/health", controller.AdminHealthHandler)
+		}
+
+		// 		// 通知関連（未読件数など）
+		// 		api.GET("/unread-counts", controller.GetUnreadCountsHandler)
 	}
+
+	// WebSocket
+	r.GET("/ws", controller.WSHandler)
 
 	return r
 }
-
