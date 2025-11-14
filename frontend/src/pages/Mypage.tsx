@@ -2,6 +2,7 @@ import { useRecoilValue, useSetRecoilState } from "recoil";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../services/api/auth";
 import { authLoadingState, currentUserState } from "../store/auth";
+import { clearStoredUser } from "../utils/authStorage";
 
 const Mypage = () => {
   const currentUser = useRecoilValue(currentUserState);
@@ -15,6 +16,7 @@ const Mypage = () => {
     } catch (err) {
       console.error("❌ ログアウトに失敗しました", err);
     } finally {
+      clearStoredUser();
       setUser(null);
       setLoading(false);
       navigate("/login");

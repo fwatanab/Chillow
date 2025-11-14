@@ -3,6 +3,7 @@ import { useSetRecoilState, useRecoilValue } from 'recoil';
 import { authLoadingState, currentUserState } from '../store/auth';
 import { loginWithGoogle } from '../services/api/auth';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { storeUser } from '../utils/authStorage';
 
 const Login = () => {
   const setUser = useSetRecoilState(currentUserState);
@@ -19,6 +20,7 @@ const Login = () => {
 
     try {
       const res = await loginWithGoogle(idToken);
+      storeUser(res.user);
       setUser(res.user);
       setLoading(false);
       navigate('/');

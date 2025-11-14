@@ -1,4 +1,3 @@
-import { RecoilRoot } from 'recoil';
 import AppRoutes from './routes/AppRoutes';
 import { useRestoreUser } from './hooks/useRestoreUser';
 
@@ -8,14 +7,11 @@ const AppInitializer = () => {
 };
 
 
-const App = () => {
-	return (
-		<RecoilRoot>
-			<AppInitializer />
-			<AppRoutes />
-		</RecoilRoot>
-	);
-};
+const App = () => (
+	<>
+		<AppInitializer />
+		<AppRoutes />
+	</>
+);
 
 export default App
-
