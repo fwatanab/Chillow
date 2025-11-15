@@ -18,14 +18,14 @@ Chillow の現状機能を実務想定の仕様レベルで整理したドキュ
 - ユーザー検索: フレンドコードで `GET /api/users/search`。
 - フレンド申請: `POST /api/friend-requests`。承認/拒否は `PATCH /api/friend-requests/:id`。
 - フレンド一覧: `GET /api/friends` で最新メッセージ・未読件数・オンライン状態（WS連携）を返却。
-- フレンド削除: `DELETE /api/friends/:friend_id`。削除後は `room:revoked` イベントを当該ルームに配信。
+- フレンド削除: `DELETE /api/friends/:friend_id`。双方向の friend レコード削除に加えて、該当ルームのメッセージ・既読レコードを物理削除し、添付オブジェクトもストレージから除去してから `room:revoked` を配信。
 - フロントの FriendManage 画面には「フレンド追加」「申請一覧」「フレンド管理」のタブを用意し、削除操作はフレンド管理タブからのみ実行可能。
 
 ## 3. チャット機能
 
 - REST API:
   - `GET /api/messages/:friend_id` で履歴取得＆未読を既読に更新。
-  - `POST /api/messages` でメッセージ送信（テキスト/スタンプ/画像）。
+  - `POST /api/messages` でメッセージ送信（テキスト/スタンプ/絵文字単体/画像）。
   - `PATCH /api/messages/:id` で送信者のみ編集可能。
   - `DELETE /api/messages/:id` で送信者のみ削除可能（添付ファイルはストレージからも削除）。
   - `POST /api/messages/:id/read` で既読化。
@@ -36,15 +36,16 @@ Chillow の現状機能を実務想定の仕様レベルで整理したドキュ
   - イベント `message:new/updated/deleted/read`, `typing:start/stop`, `presence:update`, `room:revoked` をブロードキャスト。
 - 既読管理は `message_reads` テーブルでユーザー×メッセージ単位に記録し、REST/WS の両経路から upsert。
 - フロント UI:
-  - 画像/スタンプ表示、送信者の編集・削除アクション、既読ラベル、タイピングインジケータ、オンライン表示、アップロード中インジケータを搭載。
+  - 画像/スタンプ/絵文字表示、送信者の編集・削除アクション、既読ラベル、タイピングインジケータ、オンライン表示、アップロード中インジケータを搭載。
   - WebSocket でリアルタイム更新し、友達一覧も未読件数・オンライン状態を即時反映。
   - 再読み込みボタンは不要で、`useFriendsData` がログイン状態を見て自動更新。
+  - 編集可否ルール: テキスト or テキスト+絵文字のみ編集可。スタンプおよび絵文字単体メッセージはレイアウト維持のため編集不可だが削除は可能。
 
 ## 4. ストレージポリシー
 
 - `ATTACHMENT_STORAGE=local|s3` で保存先を切替。
 - `local`: `UPLOAD_DIR` 配下に `uploads/chat/<user_id>/` 形式で保存。`/uploads` を静的に配信。
-- `s3`: 最小限の SigV4 署名で互換バケットに PUT/DELETE。`attachment_object` にキーを保持し、削除時にクリーンアップ。
+- `s3`: 最小限の SigV4 署名で互換バケットに PUT/DELETE。`attachment_object` にキーを保持し、メッセージ削除やフレンド削除時にクリーンアップ。
 
 ## 5. その他仕様メモ
 
