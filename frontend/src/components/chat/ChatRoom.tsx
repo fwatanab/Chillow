@@ -20,17 +20,14 @@ const isEmojiOnly = (text: string) => {
 
 const formatTimestamp = (value: string) => {
 	const date = new Date(value);
-	const now = new Date();
-	const sameDay =
-		date.getFullYear() === now.getFullYear() &&
-		date.getMonth() === now.getMonth() &&
-		date.getDate() === now.getDate();
-	return sameDay
-		? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-		: `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, "0")}:${date
-				.getMinutes()
-				.toString()
-				.padStart(2, "0")}`;
+	return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
+const formatDateLabel = (value: string) => {
+	const date = new Date(value);
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const day = date.getDate().toString().padStart(2, "0");
+	return `${month}/${day}`;
 };
 
 const ChatRoom = ({ friend, showHeader = true }: Props) => {
@@ -236,6 +233,8 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		)}
 			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 				{messages.map((msg: MessagePayload, idx: number) => {
+					const prevMessage = idx > 0 ? messages[idx - 1] : null;
+					const showDateLabel = !prevMessage || formatDateLabel(prevMessage.created_at) !== formatDateLabel(msg.created_at);
 					const isOwn = msg.isOwn;
 					const alignment = isOwn ? "justify-end" : "justify-start";
 					const meta = (
@@ -250,6 +249,15 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 					);
 					return (
 						<div key={msg.id ?? idx} className="flex flex-col gap-1">
+							{showDateLabel && (
+								<div className="flex items-center gap-3 px-6">
+									<div className="flex-1 h-px bg-gray-700" />
+									<span className="text-xs text-gray-300 bg-gray-800/70 px-6 py-1 rounded-full shadow">
+										{formatDateLabel(msg.created_at)}
+									</span>
+									<div className="flex-1 h-px bg-gray-700" />
+								</div>
+							)}
 							<div className={`flex items-end gap-2 ${alignment}`}>
 								{isOwn && meta}
 							<div
