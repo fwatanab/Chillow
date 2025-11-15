@@ -10,7 +10,7 @@ export const markMessageAsRead = async (messageId: number): Promise<void> => {
 	await axios.post(`/messages/${messageId}/read`);
 };
 
-export const uploadMessageAttachment = async (file: File): Promise<{ url: string }> => {
+export const uploadMessageAttachment = async (file: File): Promise<{ url: string; objectKey?: string }> => {
 	const formData = new FormData();
 	formData.append("file", file);
 	const res = await axios.post("/messages/media", formData, {

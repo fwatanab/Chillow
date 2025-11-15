@@ -8,6 +8,9 @@ import (
 
 	"chillow/db"
 	"chillow/model"
+	"chillow/storage"
+
+	"gorm.io/gorm/clause"
 )
 
 const maxWSMessageLength = 2000
@@ -51,6 +54,9 @@ func handleJoin(c *Client, msg []byte) {
 	}
 	if !isUserInRoom(e.RoomID, c.userID) {
 		log.Printf("⚠️ unauthorized room access. user=%d room=%s", c.userID, e.RoomID)
+		return
+	}
+	if _, ok := ensureRoomAccess(c, e.RoomID); !ok {
 		return
 	}
 	c.joinRoom(e.RoomID)
@@ -107,6 +113,13 @@ func handleMessageSend(c *Client, raw []byte) {
 			attachment = &trimmed
 		}
 	}
+	var attachmentObj *string
+	if e.AttachmentObj != nil {
+		trimmed := strings.TrimSpace(*e.AttachmentObj)
+		if trimmed != "" {
+			attachmentObj = &trimmed
+		}
+	}
 	if messageType == "image" && attachment == nil {
 		log.Println("⚠️ missing attachment for image")
 		return
@@ -117,9 +130,8 @@ func handleMessageSend(c *Client, raw []byte) {
 		return
 	}
 
-	receiverID, err := counterpartyFromRoom(e.RoomID, c.userID)
-	if err != nil {
-		log.Printf("⚠️ failed to resolve receiver: %v", err)
+	receiverID, ok := ensureRoomAccess(c, e.RoomID)
+	if !ok {
 		return
 	}
 
@@ -130,6 +142,7 @@ func handleMessageSend(c *Client, raw []byte) {
 		Content:       content,
 		MessageType:   messageType,
 		AttachmentURL: attachment,
+		AttachmentObj: attachmentObj,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
@@ -138,6 +151,7 @@ func handleMessageSend(c *Client, raw []byte) {
 		log.Printf("❌ failed to persist message: %v", err)
 		return
 	}
+	createReadReceipt(c.userID, message.ID)
 	broadcastMessage(c.hub, e.RoomID, "message:new", message)
 }
 
@@ -150,6 +164,9 @@ func handleMessageEdit(c *Client, raw []byte) {
 
 	if !isUserInRoom(e.RoomID, c.userID) {
 		log.Printf("⚠️ user %d cannot edit in room %s", c.userID, e.RoomID)
+		return
+	}
+	if _, ok := ensureRoomAccess(c, e.RoomID); !ok {
 		return
 	}
 
@@ -203,6 +220,9 @@ func handleMessageDelete(c *Client, raw []byte) {
 	if !isUserInRoom(e.RoomID, c.userID) {
 		return
 	}
+	if _, ok := ensureRoomAccess(c, e.RoomID); !ok {
+		return
+	}
 
 	var message model.Message
 	if err := db.DB.First(&message, e.MessageID).Error; err != nil {
@@ -225,7 +245,11 @@ func handleMessageDelete(c *Client, raw []byte) {
 	message.DeletedAt = &now
 	message.UpdatedAt = now
 	message.Content = ""
+	if message.AttachmentObj != nil {
+		_ = storage.Default().Delete(*message.AttachmentObj)
+	}
 	message.AttachmentURL = nil
+	message.AttachmentObj = nil
 	if err := db.DB.Save(&message).Error; err != nil {
 		log.Printf("⚠️ failed to delete message: %v", err)
 		return
@@ -240,6 +264,9 @@ func handleTyping(c *Client, raw []byte, eventType string) {
 		return
 	}
 	if !isUserInRoom(e.RoomID, c.userID) {
+		return
+	}
+	if _, ok := ensureRoomAccess(c, e.RoomID); !ok {
 		return
 	}
 
@@ -260,4 +287,41 @@ func broadcastMessage(h *Hub, roomID, eventType string, message model.Message) {
 		return
 	}
 	h.Broadcast(roomID, data)
+}
+
+func ensureRoomAccess(c *Client, roomID string) (uint, bool) {
+	peerID, err := counterpartyFromRoom(roomID, c.userID)
+	if err != nil {
+		log.Printf("⚠️ failed to parse room %s: %v", roomID, err)
+		return 0, false
+	}
+	ok, err := model.AreFriends(c.userID, peerID)
+	if err != nil {
+		log.Printf("⚠️ friendship check failed: %v", err)
+		return peerID, false
+	}
+	if !ok {
+		notifyRoomRevoked(c, roomID)
+		return peerID, false
+	}
+	return peerID, true
+}
+
+func notifyRoomRevoked(c *Client, roomID string) {
+	_ = c.sendJSON(RoomRevokedEvent{Type: "room:revoked", RoomID: roomID})
+	c.leaveRoom(roomID)
+}
+
+func createReadReceipt(userID, messageID uint) {
+	if userID == 0 || messageID == 0 {
+		return
+	}
+	now := time.Now()
+	entry := model.MessageRead{MessageID: messageID, UserID: userID, ReadAt: now}
+	if err := db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "message_id"}, {Name: "user_id"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{"read_at": now}),
+	}).Create(&entry).Error; err != nil {
+		log.Printf("⚠️ failed to upsert read receipt: %v", err)
+	}
 }

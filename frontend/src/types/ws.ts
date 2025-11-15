@@ -6,6 +6,7 @@ export type MessageDTO = {
 	content: string;
 	message_type: "text" | "image" | "sticker" | string;
 	attachment_url?: string | null;
+	attachment_object?: string | null;
 	is_deleted: boolean;
 	is_read: boolean;
 	created_at: string;
@@ -14,7 +15,7 @@ export type MessageDTO = {
 
 export type WsSendEvent =
 	| { type: "join"; roomId: string }
-	| { type: "message:send"; roomId: string; content: string; messageType: MessageDTO["message_type"]; attachmentUrl?: string | null }
+	| { type: "message:send"; roomId: string; content: string; messageType: MessageDTO["message_type"]; attachmentUrl?: string | null; attachmentObject?: string | null }
 	| { type: "message:edit"; roomId: string; messageId: number; content: string }
 	| { type: "message:delete"; roomId: string; messageId: number }
 	| { type: "typing:start"; roomId: string }
@@ -29,4 +30,5 @@ export type WsReceiveEvent =
 	| { type: "typing:start"; roomId: string; userId: number }
 	| { type: "typing:stop"; roomId: string; userId: number }
 	| { type: "presence:update"; roomId: string; users: number[] }
+	| { type: "room:revoked"; roomId: string }
 	| { type: "pong" };

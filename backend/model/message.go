@@ -9,6 +9,7 @@ type Message struct {
 	Content       string     `json:"content"`
 	MessageType   string     `gorm:"type:varchar(20);default:'text'" json:"message_type"`
 	AttachmentURL *string    `json:"attachment_url"`
+	AttachmentObj *string    `json:"attachment_object"`
 	IsRead        bool       `json:"is_read"`
 	IsDeleted     bool       `json:"is_deleted"`
 	EditedAt      *time.Time `json:"edited_at"`

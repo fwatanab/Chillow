@@ -9,6 +9,7 @@ type MessageDTO struct {
 	Content       string  `json:"content"`
 	MessageType   string  `json:"message_type"`
 	AttachmentURL *string `json:"attachment_url"`
+	AttachmentObj *string `json:"attachment_object"`
 	IsDeleted     bool    `json:"is_deleted"`
 	IsRead        bool    `json:"is_read"`
 	CreatedAt     string  `json:"created_at"`
@@ -44,6 +45,7 @@ type SendMessageEvent struct {
 	Content       string  `json:"content"`
 	MessageType   string  `json:"messageType"`
 	AttachmentURL *string `json:"attachmentUrl"`
+	AttachmentObj *string `json:"attachmentObject"`
 }
 
 type EditMessageEvent struct {
@@ -66,4 +68,9 @@ type TypingEvent struct {
 
 type PongEvent struct {
 	Type string `json:"type"`
+}
+
+type RoomRevokedEvent struct {
+	Type   string `json:"type"`
+	RoomID string `json:"roomId"`
 }

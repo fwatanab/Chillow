@@ -116,8 +116,8 @@ const ChatRoom = ({ friend }: Props) => {
 		if (!file) return;
 		setUploading(true);
 		try {
-			const { url } = await uploadMessageAttachment(file);
-			sendMessage("", { messageType: "image", attachmentUrl: url });
+			const resp = await uploadMessageAttachment(file);
+			sendMessage("", { messageType: "image", attachmentUrl: resp.url, attachmentObject: resp.objectKey ?? null });
 		} catch (error) {
 			console.error("❌ ファイル送信に失敗", error);
 		} finally {

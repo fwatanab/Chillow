@@ -13,6 +13,11 @@ func BuildMessageDTO(roomID string, message model.Message) MessageDTO {
 		copy := *message.AttachmentURL
 		attachment = &copy
 	}
+	var attachmentObj *string
+	if message.AttachmentObj != nil {
+		copy := *message.AttachmentObj
+		attachmentObj = &copy
+	}
 
 	var editedAt *string
 	if message.EditedAt != nil {
@@ -28,6 +33,7 @@ func BuildMessageDTO(roomID string, message model.Message) MessageDTO {
 		Content:       message.Content,
 		MessageType:   message.MessageType,
 		AttachmentURL: attachment,
+		AttachmentObj: attachmentObj,
 		IsDeleted:     message.IsDeleted,
 		IsRead:        message.IsRead,
 		CreatedAt:     message.CreatedAt.Format(time.RFC3339),

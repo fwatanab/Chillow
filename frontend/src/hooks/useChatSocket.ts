@@ -11,6 +11,7 @@ import type { MessageDTO } from "../types/ws";
 type SendMessageOptions = {
 	messageType?: MessagePayload["message_type"];
 	attachmentUrl?: string | null;
+	attachmentObject?: string | null;
 };
 
 export function useChatSocket(friendUserId: number) {
@@ -37,6 +38,7 @@ export function useChatSocket(friendUserId: number) {
 				content: base.content ?? "",
 				message_type: base.message_type ?? "text",
 				attachment_url: base.attachment_url ?? null,
+				attachment_object: base.attachment_object ?? null,
 				created_at: base.created_at!,
 				edited_at: base.edited_at ?? null,
 				is_deleted: base.is_deleted ?? false,
@@ -146,6 +148,12 @@ export function useChatSocket(friendUserId: number) {
 			setFriendOnline(event.users.includes(friendUserId));
 		});
 
+		const offRoomRevoked = onType("room:revoked", (event) => {
+			if (event.roomId !== roomId) return;
+			setMessages([]);
+			alert("このフレンドとのチャットは利用できません。フレンド状態を確認してください。");
+		});
+
 		return () => {
 			offNew();
 			offUpdated();
@@ -154,6 +162,7 @@ export function useChatSocket(friendUserId: number) {
 				offTypingStop();
 				offPresence();
 				offRead();
+				offRoomRevoked();
 			setCurrentFriend((prev) => (prev === friendUserId ? null : prev));
 			setFriendTyping(false);
 			setFriendOnline(false);
@@ -177,6 +186,7 @@ export function useChatSocket(friendUserId: number) {
 				content: trimmed,
 				messageType,
 				attachmentUrl: options?.attachmentUrl ?? null,
+				attachmentObject: options?.attachmentObject ?? null,
 			});
 		},
 		[roomId, send]

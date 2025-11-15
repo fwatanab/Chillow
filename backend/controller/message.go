@@ -1,24 +1,21 @@
 package controller
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"chillow/config"
 	"chillow/db"
 	"chillow/model"
+	"chillow/storage"
 	"chillow/ws"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -66,10 +63,13 @@ func GetMessagesHandler(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark as read"})
 			return
 		}
+		ids := make([]uint, 0, len(toMark))
 		for _, msg := range toMark {
 			msg.IsRead = true
+			ids = append(ids, msg.ID)
 			broadcastMessageEvent("message:read", *msg)
 		}
+		recordReadReceipts(userID, ids)
 	}
 
 	c.JSON(http.StatusOK, messages)
@@ -79,10 +79,11 @@ func PostMessageHandler(c *gin.Context) {
 	senderID := c.GetUint("user_id")
 
 	var req struct {
-		ReceiverID    uint    `json:"receiver_id"`
-		Content       string  `json:"content"`
-		MessageType   string  `json:"message_type"`
-		AttachmentURL *string `json:"attachment_url"`
+		ReceiverID       uint    `json:"receiver_id"`
+		Content          string  `json:"content"`
+		MessageType      string  `json:"message_type"`
+		AttachmentURL    *string `json:"attachment_url"`
+		AttachmentObject *string `json:"attachment_object"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -133,6 +134,13 @@ func PostMessageHandler(c *gin.Context) {
 			normalizedAttachment = &url
 		}
 	}
+	var normalizedObject *string
+	if req.AttachmentObject != nil {
+		obj := strings.TrimSpace(*req.AttachmentObject)
+		if obj != "" {
+			normalizedObject = &obj
+		}
+	}
 
 	now := time.Now()
 	msg := model.Message{
@@ -141,6 +149,7 @@ func PostMessageHandler(c *gin.Context) {
 		Content:       trimmedContent,
 		MessageType:   messageType,
 		AttachmentURL: normalizedAttachment,
+		AttachmentObj: normalizedObject,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
@@ -149,6 +158,7 @@ func PostMessageHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send message"})
 		return
 	}
+	recordReadReceipts(senderID, []uint{msg.ID})
 	c.JSON(http.StatusOK, msg)
 }
 
@@ -171,26 +181,17 @@ func UploadMessageMediaHandler(c *gin.Context) {
 		return
 	}
 
-	filenameSuffix, err := randomHex(6)
+	url, objectKey, err := storage.Default().SaveChatMedia(userID, file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to allocate filename"})
-		return
-	}
-	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), filenameSuffix, ext)
-	destDir := filepath.Join("uploads", "chat", strconv.FormatUint(uint64(userID), 10))
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to prepare directory"})
-		return
-	}
-	destPath := filepath.Join(destDir, filename)
-	if err := c.SaveUploadedFile(file, destPath); err != nil {
+		log.Printf("❌ failed to store media: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
 		return
 	}
-
-	publicPath := filepath.ToSlash(filepath.Join("/uploads", "chat", strconv.FormatUint(uint64(userID), 10), filename))
-	fileURL := strings.TrimRight(config.Cfg.BackendURL, "/") + publicPath
-	c.JSON(http.StatusOK, gin.H{"url": fileURL, "path": publicPath})
+	resp := gin.H{"url": url}
+	if objectKey != "" {
+		resp["objectKey"] = objectKey
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func MarkMessageAsReadHandler(c *gin.Context) {
@@ -306,7 +307,11 @@ func DeleteMessageHandler(c *gin.Context) {
 	now := time.Now()
 	msg.IsDeleted = true
 	msg.DeletedAt = &now
+	if msg.AttachmentObj != nil {
+		_ = storage.Default().Delete(*msg.AttachmentObj)
+	}
 	msg.AttachmentURL = nil
+	msg.AttachmentObj = nil
 	msg.Content = ""
 	msg.UpdatedAt = now
 	if err := db.DB.Save(&msg).Error; err != nil {
@@ -334,10 +339,19 @@ func broadcastMessageEvent(eventType string, msg model.Message) {
 	hub.Broadcast(roomID, bytes)
 }
 
-func randomHex(length int) (string, error) {
-	buf := make([]byte, length)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
+func recordReadReceipts(userID uint, messageIDs []uint) {
+	if userID == 0 || len(messageIDs) == 0 {
+		return
 	}
-	return hex.EncodeToString(buf), nil
+	entries := make([]model.MessageRead, 0, len(messageIDs))
+	now := time.Now()
+	for _, id := range messageIDs {
+		entries = append(entries, model.MessageRead{MessageID: id, UserID: userID, ReadAt: now})
+	}
+	if err := db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "message_id"}, {Name: "user_id"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{"read_at": now}),
+	}).Create(&entries).Error; err != nil {
+		log.Printf("⚠️ failed to persist read receipts: %v", err)
+	}
 }
