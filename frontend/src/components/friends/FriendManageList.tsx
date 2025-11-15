@@ -48,7 +48,6 @@ const FriendManageList = ({ friends, loading, error, onReload }: Props) => {
 								)}
 								<div>
 									<p className="font-medium">{friend.friend_nickname}</p>
-									<p className="text-xs text-gray-400">ID: {friend.friend_id}</p>
 								</div>
 							</div>
 							<button

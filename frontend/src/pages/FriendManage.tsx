@@ -48,7 +48,7 @@ const FriendManage = () => {
 		</div>
 		{activeTab === "add" && (
 			<div className="bg-discord-sidebar p-4 rounded shadow">
-				<AddFriend onFriendAdded={reload} existingFriends={friends} />
+				<AddFriend onFriendAdded={reload} />
 			</div>
 		)}
 		{activeTab === "requests" && (
