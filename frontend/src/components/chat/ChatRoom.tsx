@@ -3,7 +3,7 @@ import type { MessagePayload } from "../../types/chat";
 import type { Friend } from "../../types/friend";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import { uploadMessageAttachment, reportMessage } from "../../services/api/chat";
-import { EMOJI_PRESETS, STICKER_PRESETS, type PickerMode } from "../../constants/chatPalette";
+import { EMOJI_PRESETS, STICKER_PRESETS, type PickerMode, type EmojiPreset, type StickerPreset } from "../../constants/chatPalette";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
 interface Props {
@@ -141,15 +141,24 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		setUploadPickerOpen(false);
 	};
 
-	const handleStickerSelect = (sticker: string) => {
-		sendMessage(sticker, { messageType: "sticker" });
+	const handleStickerSelect = (sticker: StickerPreset) => {
+		const isAssetPath = sticker.asset.startsWith("/") || sticker.asset.startsWith("http");
+		if (isAssetPath) {
+			sendMessage("", { messageType: "image", attachmentUrl: sticker.asset });
+		} else {
+			sendMessage(sticker.asset, { messageType: "sticker" });
+		}
 		setPickerOpen(false);
 		setPickerMode("sticker");
 		setLastPickerMode("sticker");
 	};
 
-	const handleEmojiSelect = (emoji: string) => {
-		setMessageText((prev) => prev + emoji);
+	const handleEmojiSelect = (emoji: EmojiPreset) => {
+		if (emoji.type === "unicode") {
+			setMessageText((prev) => prev + emoji.value);
+		} else {
+			setMessageText((prev) => `${prev}[emoji:${emoji.id}]`);
+		}
 		setPickerMode("emoji");
 		setLastPickerMode("emoji");
 	};
@@ -448,13 +457,17 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 					>
 						{pickerMode === "emoji"
 							? EMOJI_PRESETS.map((emoji) => (
-									<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
-										{emoji}
+									<button key={emoji.id} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
+										{emoji.type === "unicode" ? emoji.value : <img src={emoji.value} alt={emoji.label} className="w-7 h-7" />}
 									</button>
 							  ))
 							: STICKER_PRESETS.map((sticker) => (
-									<button key={sticker} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
-										{sticker}
+									<button key={sticker.id} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
+										{/\.(png|webp|svg|gif)$/i.test(sticker.asset) ? (
+											<img src={sticker.asset} alt={sticker.label} className="w-12 h-12" />
+										) : (
+											sticker.asset
+										)}
 									</button>
 							  ))}
 					</div>
