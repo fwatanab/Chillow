@@ -89,7 +89,7 @@ const FriendList = ({ onSelectFriend, friends, loading, error }: Props) => {
 				return (
 					<div
 						key={f.id ?? `${f.user_id}-${f.friend_id}`}
-						className="cursor-pointer hover:bg-gray-700 p-3 rounded flex gap-3"
+						className="cursor-pointer bg-[#2a2c32] border border-gray-800/70 rounded-2xl px-3 py-4 flex gap-3 hover:border-discord-accent/60 transition"
 						onClick={() => onSelectFriend(f)}
 					>
 						<div className="relative">
