@@ -236,12 +236,25 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		)}
 			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 				{messages.map((msg: MessagePayload, idx: number) => {
-					const alignment = msg.isOwn ? "items-end" : "items-start";
+					const isOwn = msg.isOwn;
+					const alignment = isOwn ? "justify-end" : "justify-start";
+					const meta = (
+						<div
+							className={`flex flex-col text-[10px] text-gray-400 leading-tight ${
+								isOwn ? "items-end" : "items-start"
+							} min-w-[42px]`}
+						>
+							{isOwn && msg.is_read && !msg.is_deleted && <span>既読</span>}
+							<span>{formatTimestamp(msg.created_at)}</span>
+						</div>
+					);
 					return (
-						<div key={msg.id ?? idx} className={`flex flex-col ${alignment}`}>
+						<div key={msg.id ?? idx} className="flex flex-col gap-1">
+							<div className={`flex items-end gap-2 ${alignment}`}>
+								{isOwn && meta}
 							<div
 								className={`relative max-w-[75%] rounded-2xl px-4 py-2 ${
-									msg.isOwn ? "bg-discord-accent text-white" : "bg-gray-700"
+									isOwn ? "bg-discord-accent text-white" : "bg-gray-700"
 								}`}
 								role="button"
 								tabIndex={0}
@@ -253,10 +266,10 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 								{activeMessageId === msg.id && !msg.is_deleted && (
 									<div
 										className={`absolute -top-10 ${
-											msg.isOwn ? "right-0" : "left-0"
+											isOwn ? "right-0" : "left-0"
 										} flex gap-2 bg-gray-900/90 px-3 py-1 rounded-lg shadow text-xs`}
 									>
-										{msg.isOwn ? (
+										{isOwn ? (
 											<>
 												{msg.message_type === "text" && !isEmojiOnly(msg.content) && (
 													<button type="button" className="text-white/80 hover:text-white" onClick={() => startEditing(msg)}>
@@ -287,12 +300,10 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 								) : (
 									<p className="whitespace-pre-line break-words">{msg.content}</p>
 								)}
-								<div className="mt-1 flex items-center justify-end gap-2 text-xs text-gray-200">
-									<span>{formatTimestamp(msg.created_at)}</span>
-									{msg.edited_at && !msg.is_deleted && <span>編集済み</span>}
-									{msg.isOwn && <span>{msg.is_read ? "既読" : "送信済み"}</span>}
-								</div>
 							</div>
+								{!isOwn && meta}
+							</div>
+							{msg.edited_at && !msg.is_deleted && <span className={`text-[10px] text-gray-500 ${isOwn ? "text-right" : "text-left"}`}>編集済み</span>}
 						</div>
 					);
 				})}
