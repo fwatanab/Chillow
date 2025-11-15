@@ -71,8 +71,10 @@ Chillow の開発環境向け認証／権限方針を以下のように統一し
   - `GET /api/admin/health`
   - `POST /api/admin/users/:id/ban`（理由必須、任意で `duration_hours` 指定）
   - `POST /api/admin/users/:id/unban`
+  - `GET /api/admin/reports` / `POST /api/admin/reports/:id/resolve`
+  - `GET /api/admin/banned-users`
 - BAN 中は REST / WebSocket へのアクセスを完全に遮断する。期限付き BAN はミドルウェアが解除時刻を過ぎたタイミングで自動的に解除。
-- `/api/admin/reports` と `POST /api/admin/reports/:id/resolve` で通報一覧の取得と BAN/拒否を実施し、`/api/admin/banned-users` で BAN リストを確認可能。
+- BAN を発動すると現在接続中の WebSocket も強制的に切断し、即座に利用停止を反映する。
 - 管理 UI は `/admin` として別画面を提供し、ユーザー向けチャット UI とは完全に分離している。
 
 ---
