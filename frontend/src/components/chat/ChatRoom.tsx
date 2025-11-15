@@ -9,6 +9,12 @@ interface Props {
 }
 
 const STICKERS = ["🎉", "😊", "👏", "🔥", "😎", "❤️", "🥳", "👍"];
+const QUICK_EMOJIS = ["😀", "😂", "😍", "🤔", "😢", "👏", "👍", "🙌"];
+const emojiOnlyRegex = /^\p{Extended_Pictographic}+$/u;
+const isEmojiOnly = (text: string) => {
+	const trimmed = text.trim();
+	return trimmed.length > 0 && emojiOnlyRegex.test(trimmed);
+};
 
 const formatTimestamp = (value: string) => {
 	const date = new Date(value);
@@ -44,6 +50,7 @@ const ChatRoom = ({ friend }: Props) => {
 	const [messageText, setMessageText] = useState("");
 	const [editingMessage, setEditingMessage] = useState<MessagePayload | null>(null);
 	const [showStickerPicker, setShowStickerPicker] = useState(false);
+	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const typingIndicator = useMemo(() => (isFriendTyping ? `${friend.friend_nickname} が入力中...` : null), [friend.friend_nickname, isFriendTyping]);
 	const friendOnlineState = isFriendOnline || Boolean(friend.is_online);
@@ -85,12 +92,17 @@ const ChatRoom = ({ friend }: Props) => {
 
 	const handleSend = () => {
 		if (editingMessage) {
+			if (!editingMessage.content || isEmojiOnly(editingMessage.content)) {
+				return;
+			}
 			editMessage(editingMessage.id, messageText);
 			setEditingMessage(null);
 			setMessageText("");
 		} else {
-			if (!messageText.trim()) return;
-			sendMessage(messageText, { messageType: "text" });
+			const trimmed = messageText.trim();
+			if (!trimmed) return;
+			const emojiOnly = isEmojiOnly(trimmed);
+			sendMessage(trimmed, { messageType: emojiOnly ? "sticker" : "text" });
 			setMessageText("");
 		}
 		if (typingActiveRef.current) {
@@ -131,7 +143,14 @@ const ChatRoom = ({ friend }: Props) => {
 		setShowStickerPicker(false);
 	};
 
+	const handleEmojiSelect = (emoji: string) => {
+		setMessageText((prev) => prev + emoji);
+	};
+
 	const startEditing = (message: MessagePayload) => {
+		if (message.message_type !== "text" || isEmojiOnly(message.content)) {
+			return;
+		}
 		setEditingMessage(message);
 		setMessageText(message.content);
 	};
@@ -168,8 +187,9 @@ const ChatRoom = ({ friend }: Props) => {
 									msg.isOwn ? "bg-discord-accent text-white" : "bg-gray-700"
 								}`}
 							>
-							{msg.isOwn && !msg.is_deleted && msg.message_type !== "image" && (
-									<div className="absolute -top-3 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+							{msg.isOwn && !msg.is_deleted && (
+								<div className="absolute -top-3 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+									{msg.message_type === "text" && !isEmojiOnly(msg.content) && (
 										<button
 											type="button"
 											className="text-xs text-white/80 hover:text-white"
@@ -177,15 +197,16 @@ const ChatRoom = ({ friend }: Props) => {
 										>
 											編集
 										</button>
-										<button
-											type="button"
-											className="text-xs text-white/80 hover:text-red-200"
-											onClick={() => confirmDelete(msg)}
-										>
-											削除
-										</button>
-									</div>
-								)}
+									)}
+									<button
+										type="button"
+										className="text-xs text-white/80 hover:text-red-200"
+										onClick={() => confirmDelete(msg)}
+									>
+										削除
+									</button>
+								</div>
+							)}
 								{msg.is_deleted ? (
 									<p className="italic text-sm text-gray-300">このメッセージは削除されました</p>
 								) : msg.message_type === "image" && msg.attachment_url ? (
@@ -221,22 +242,31 @@ const ChatRoom = ({ friend }: Props) => {
 				</div>
 			)}
 			<div className="p-4 border-t border-gray-700 flex flex-col gap-2">
-				<div className="flex items-center gap-2">
-					<button
-						type="button"
-						className="px-3 py-2 bg-gray-700 rounded text-sm"
-						onClick={() => fileInputRef.current?.click()}
-					>
-						画像
-					</button>
-					<button
-						type="button"
-						className={`px-3 py-2 rounded text-sm ${showStickerPicker ? "bg-discord-accent" : "bg-gray-700"}`}
-						onClick={() => setShowStickerPicker((prev) => !prev)}
-					>
-						スタンプ
-					</button>
-				</div>
+			<div className="flex items-center gap-2">
+				<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={() => fileInputRef.current?.click()}>
+					画像
+				</button>
+				<button
+					type="button"
+					className={`px-3 py-2 rounded text-sm ${showStickerPicker ? "bg-discord-accent" : "bg-gray-700"}`}
+					onClick={() => {
+						setShowStickerPicker((prev) => !prev);
+						setShowEmojiPicker(false);
+					}}
+				>
+					スタンプ
+				</button>
+				<button
+					type="button"
+					className={`px-3 py-2 rounded text-sm ${showEmojiPicker ? "bg-discord-accent" : "bg-gray-700"}`}
+					onClick={() => {
+						setShowEmojiPicker((prev) => !prev);
+						setShowStickerPicker(false);
+					}}
+				>
+					絵文字
+				</button>
+			</div>
 				<div className="flex gap-2">
 					<input
 						type="text"
@@ -265,20 +295,24 @@ const ChatRoom = ({ friend }: Props) => {
 						{editingMessage ? "更新" : "送信"}
 					</button>
 				</div>
-				{showStickerPicker && (
-					<div className="bg-gray-800 rounded-lg p-3 flex flex-wrap gap-3">
-						{STICKERS.map((sticker) => (
-							<button
-								key={sticker}
-								type="button"
-								className="text-2xl"
-								onClick={() => handleStickerSelect(sticker)}
-							>
-								{sticker}
-							</button>
-						))}
-					</div>
-				)}
+			{showStickerPicker && (
+				<div className="bg-gray-800 rounded-lg p-3 flex flex-wrap gap-3">
+					{STICKERS.map((sticker) => (
+						<button key={sticker} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
+							{sticker}
+						</button>
+					))}
+				</div>
+			)}
+			{showEmojiPicker && (
+				<div className="bg-gray-800 rounded-lg p-3 flex flex-wrap gap-3">
+					{QUICK_EMOJIS.map((emoji) => (
+						<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
+							{emoji}
+						</button>
+					))}
+				</div>
+			)}
 			</div>
 			<input
 				type="file"

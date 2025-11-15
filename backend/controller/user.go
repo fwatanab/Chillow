@@ -4,11 +4,12 @@ import (
 	"chillow/db"
 	"chillow/model"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-func	GetUserHandler(c *gin.Context) {
+func GetUserHandler(c *gin.Context) {
 	userIDRaw, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証情報がありません"})
@@ -25,7 +26,7 @@ func	GetUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func	PatchUserHandler(c *gin.Context) {
+func PatchUserHandler(c *gin.Context) {
 	userIDRaw, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証情報がありません"})
@@ -49,12 +50,13 @@ func	PatchUserHandler(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func	SearchUserByCodeHandler(c *gin.Context) {
-	code := c.Query("code")
+func SearchUserByCodeHandler(c *gin.Context) {
+	code := strings.TrimSpace(c.Query("code"))
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "フレンドコードが指定されていません"})
 		return
 	}
+	code = strings.ToUpper(code)
 
 	var user model.User
 	if err := db.DB.Where("friend_code = ?", code).First(&user).Error; err != nil {
