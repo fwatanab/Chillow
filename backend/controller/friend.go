@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 	"chillow/db"
 	"chillow/model"
+	"chillow/storage"
 	"chillow/ws"
 
 	"github.com/gin-gonic/gin"
@@ -318,25 +320,92 @@ func GetFriendsHandler(c *gin.Context) {
 
 // DELETE /api/friends/:id   （:id は相手ユーザーID）
 func DeleteFriendHandler(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	userID := c.GetUint("user_id")
-
-	res1 := db.DB.Where("user_id = ? AND friend_id = ?", userID, id).Delete(&model.Friend{})
-	res2 := db.DB.Where("user_id = ? AND friend_id = ?", id, userID).Delete(&model.Friend{})
-
-	if (res1.Error != nil) || (res2.Error != nil) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete friend"})
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid friend id"})
 		return
 	}
-	if res1.RowsAffected == 0 && res2.RowsAffected == 0 {
+	userID := c.GetUint("user_id")
+	friendID := uint(id)
+
+	var attachmentKeys []string
+
+	err = db.DB.Transaction(func(tx *gorm.DB) error {
+		res1 := tx.Where("user_id = ? AND friend_id = ?", userID, friendID).Delete(&model.Friend{})
+		if res1.Error != nil {
+			return res1.Error
+		}
+		res2 := tx.Where("user_id = ? AND friend_id = ?", friendID, userID).Delete(&model.Friend{})
+		if res2.Error != nil {
+			return res2.Error
+		}
+		if res1.RowsAffected == 0 && res2.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+
+		// 過去の友達申請レコードも掃除
+		if err := tx.Where(`
+			(requester_id = ? AND receiver_id = ?) OR
+			(requester_id = ? AND receiver_id = ?)`,
+			userID, friendID, friendID, userID,
+		).Delete(&model.FriendRequest{}).Error; err != nil {
+			return err
+		}
+
+		var messages []struct {
+			ID            uint
+			AttachmentObj *string
+		}
+		conversationWhere := `
+			(sender_id = ? AND receiver_id = ?) OR
+			(sender_id = ? AND receiver_id = ?)`
+		if err := tx.Model(&model.Message{}).
+			Select("id", "attachment_obj").
+			Where(conversationWhere, userID, friendID, friendID, userID).
+			Find(&messages).Error; err != nil {
+			return err
+		}
+
+		if len(messages) > 0 {
+			messageIDs := make([]uint, 0, len(messages))
+			for _, msg := range messages {
+				messageIDs = append(messageIDs, msg.ID)
+				if msg.AttachmentObj != nil && *msg.AttachmentObj != "" {
+					attachmentKeys = append(attachmentKeys, *msg.AttachmentObj)
+				}
+			}
+
+			if err := tx.Where("message_id IN ?", messageIDs).Delete(&model.MessageRead{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where(conversationWhere, userID, friendID, friendID, userID).Delete(&model.Message{}).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Friend relation not found"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete friend"})
+		return
+	}
 
-	roomID := ws.BuildRoomID(userID, uint(id))
+	// 添付ファイルのクリーンアップはトランザクション外で実施
+	for _, key := range attachmentKeys {
+		if err := storage.Default().Delete(key); err != nil {
+			log.Printf("⚠️ failed to delete attachment %s: %v", key, err)
+		}
+	}
+
+	roomID := ws.BuildRoomID(userID, friendID)
 	broadcastRoomRevoked(roomID)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Friend deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Friend deleted and conversation purged"})
 }
 
 func broadcastRoomRevoked(roomID string) {
