@@ -40,17 +40,17 @@ const FriendManage = () => {
 			))}
 		</div>
 		{activeTab === "add" && (
-			<div className="bg-discord-sidebar p-4 rounded shadow">
+			<div className="bg-[#292b31] p-4 rounded shadow">
 				<AddFriend onFriendAdded={reload} />
 			</div>
 		)}
 		{activeTab === "requests" && (
-			<div className="bg-discord-sidebar p-4 rounded shadow">
+			<div className="bg-[#292b31] p-4 rounded shadow">
 				<FriendRequests onResponded={reload} />
 			</div>
 		)}
 		{activeTab === "manage" && (
-			<div className="bg-discord-sidebar p-4 rounded shadow">
+			<div className="bg-[#292b31] p-4 rounded shadow">
 				<FriendManageList friends={friends} loading={loading} error={error} onReload={reload} />
 			</div>
 		)}
@@ -60,7 +60,7 @@ const FriendManage = () => {
   if (isMobile) {
     return (
       <div className="h-screen bg-discord-background text-discord-text flex flex-col">
-        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+        <div className="flex items-center gap-3 p-4 border-b border-gray-800 bg-[#292b31]">
           <button
             type="button"
             className="px-3 py-1 rounded bg-gray-700 text-white mr-1"
@@ -70,7 +70,7 @@ const FriendManage = () => {
           </button>
           <h1 className="text-lg font-semibold">フレンドマネージャー</h1>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">{tabsContent}</div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-discord-background">{tabsContent}</div>
       </div>
     );
   }

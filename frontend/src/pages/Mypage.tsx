@@ -39,7 +39,7 @@ const Mypage = () => {
   if (isMobile) {
     return (
       <div className="h-screen bg-discord-background text-discord-text flex flex-col">
-        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+        <div className="flex items-center gap-3 p-4 border-b border-gray-800 bg-[#292b31]">
           <button
             type="button"
             className="px-3 py-1 rounded bg-gray-700 text-white mr-1"
@@ -49,7 +49,7 @@ const Mypage = () => {
           </button>
           <h1 className="text-lg font-semibold">マイページ</h1>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-discord-background">
           <div className="space-y-2">
             <p>ニックネーム: {currentUser.nickname}</p>
             <p>メール: {currentUser.email}</p>

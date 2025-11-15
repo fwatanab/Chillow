@@ -242,7 +242,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	return (
 		<div className="flex flex-col h-full bg-discord-background text-discord-text" onClick={handleWorkspaceClick}>
 			{showHeader && (
-				<header className="p-4 border-b border-gray-700 flex items-center justify-between">
+				<header className="p-4 border-b border-gray-800 bg-[#292b31] flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<div className="relative">
 							{friend.friend_avatar_url ? (
@@ -361,7 +361,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 					</button>
 				</div>
 			)}
-			<div className="p-4 border-t border-gray-700 flex flex-col gap-2">
+			<div className="p-4 border-t border-gray-800 bg-[#292b31] flex flex-col gap-2">
 				<div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
 					<div className="relative">
 						<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={toggleUploadPicker}>

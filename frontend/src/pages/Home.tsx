@@ -52,7 +52,7 @@ const Home = () => {
     }
     return (
       <div className="h-screen flex flex-col text-discord-text bg-discord-background">
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-[#292b31]">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -82,7 +82,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-discord-background">
           <ChatRoom friend={selectedFriend} showHeader={false} />
         </div>
       </div>
@@ -99,7 +99,7 @@ const Home = () => {
         onSelectFriend={handleSelectFriend}
         onOpenFriendManage={() => navigate("/friends/manage")}
       />
-
+      <div className="w-px bg-gray-800" />
       <main className="flex-1 flex flex-col">
         {selectedFriend ? (
           <ChatRoom friend={selectedFriend} />
@@ -114,91 +114,3 @@ const Home = () => {
 };
 
 export default Home;
-
-
-// import FriendList from "../components/FriendList";
-// import ChatRoom from "../components/ChatRoom";
-// import FriendRequests from "../components/FriendRequests";
-// import type { Friend } from "../types/friend";
-// import { useState } from "react";
-// import { useNavigate } from "react-router-dom";
-// import { useRecoilValue } from "recoil";
-// import { currentUserState } from "../store/auth";
-// 
-// // const Home = () => {
-// // 	console.log("✅ Home loaded")
-// // 
-// // 	return (
-// // 		// Home.tsx など
-// // 		<div className="flex h-screen">
-// // 			{/* サイドバー */}
-// // 			<aside className="w-1/3 max-w-sm bg-discord-sidebar text-discord-text p-4 overflow-y-auto">
-// // 				<FriendList />
-// // 				<FriendRequests />
-// // 				<AddFriend />
-// // 			</aside>
-// // 			
-// // 			{/* メインビュー */}
-// // 			<main className="flex-1 bg-discord-background text-discord-text p-4 flex flex-col">
-// // 				<ChatRoom />
-// // 			</main>
-// // 		</div>
-// // 
-// // 	);
-// // };
-// 
-// const Home = () => {
-//   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-//   const [showFriendRequests, setShowFriendRequests] = useState(false);
-//   const currentUser = useRecoilValue(currentUserState);
-//   const navigate = useNavigate();
-// 
-//   return (
-//     <div className="flex h-screen text-discord-text bg-discord-background">
-//       {/* Left Sidebar */}
-//       <aside className="w-72 bg-discord-sidebar flex flex-col">
-//         {/* Top Section */}
-//         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-//           <h2 className="text-lg font-bold">フレンド</h2>
-//           <button
-//             onClick={() => setShowFriendRequests(!showFriendRequests)}
-//             className="hover:text-discord-accent"
-//             title="フレンド申請"
-//           >
-//             ➕
-//           </button>
-//         </div>
-// 
-//         {/* Friend List */}
-//         <div className="flex-1 overflow-y-auto">
-//           <FriendList onSelectFriend={setSelectedFriend} />
-//         </div>
-// 
-//         {/* Bottom: Current User */}
-//         <div
-//           className="p-4 border-t border-gray-700 cursor-pointer hover:bg-discord-accent/10"
-//           onClick={() => navigate("/mypage")}
-//         >
-//           <p className="text-sm font-semibold">{currentUser?.nickname}</p>
-//         </div>
-//       </aside>
-// 
-//       {/* Right Main Panel */}
-//       <main className="flex-1 flex flex-col">
-//         {showFriendRequests ? (
-//           <FriendRequests />
-//         ) : selectedFriend ? (
-//           <ChatRoom friend={selectedFriend} />
-//         ) : (
-//           <div className="flex items-center justify-center h-full text-gray-400">
-//             フレンドを選択してください
-//           </div>
-//         )}
-//       </main>
-//     </div>
-//   );
-// };
-// 
-// 
-// export default Home;
-// 
