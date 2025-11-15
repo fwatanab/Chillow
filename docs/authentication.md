@@ -56,7 +56,7 @@ Chillow の開発環境向け認証／権限方針を以下のように統一し
 2. `ParseAccessToken` で JWT を検証し、`user_id` と `user_role` を Context に保存。
 3. 各 API グループで `middleware.AuthMiddleware()` を使用。
 4. 管理者専用 API は `middleware.RequireRoles("admin")` で明示的に保護。
-5. `/ws` も Cookie ベースで認証し、WebSocket 開通後は Room ID ごとのブロードキャストに利用。
+5. `/ws` も Cookie ベースで認証し、接続後は **ルーム参加時・メッセージ送受信時に都度フレンド関係を再検証**。フレンド解除済みのルームには `room:revoked` を返して強制的に切断することで、不正なチャネル継続を防いでいる。
 
 ---
 
@@ -74,7 +74,7 @@ Chillow の開発環境向け認証／権限方針を以下のように統一し
 
 ## Google OAuth 設定 (開発)
 
-- Authorized JavaScript origins: `http://localhost:5173`
+- Authorized JavaScript origins: `http://localhost:5173` など **実際にアクセスするオリジンと必ず一致させること**（不一致だと `The given origin is not allowed for the given client ID.` で 403 となる）。
 - Authorized redirect URIs: `http://localhost:5173/auth/callback`
 - `.env` の `GOOGLE_REDIRECT_URI` と一致させること
 
