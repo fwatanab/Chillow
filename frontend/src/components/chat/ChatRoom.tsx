@@ -142,12 +142,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	};
 
 	const handleStickerSelect = (sticker: StickerPreset) => {
-		const isAssetPath = sticker.asset.startsWith("/") || sticker.asset.startsWith("http");
-		if (isAssetPath) {
-			sendMessage("", { messageType: "image", attachmentUrl: sticker.asset });
-		} else {
-			sendMessage(sticker.asset, { messageType: "sticker" });
-		}
+		sendMessage(sticker.asset, { messageType: "sticker" });
 		setPickerOpen(false);
 		setPickerMode("sticker");
 		setLastPickerMode("sticker");
@@ -297,17 +292,19 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 							)}
 							<div className={`flex items-end gap-2 ${alignment}`}>
 								{isOwn && meta}
-							<div
-								className={`relative max-w-[75%] rounded-2xl px-4 py-2 ${
-									isOwn ? "bg-discord-accent text-white" : "bg-gray-700"
-								}`}
-								role="button"
-								tabIndex={0}
-								onClick={(e) => {
-									e.stopPropagation();
-									handleMessageClick(msg);
-								}}
-							>
+								<div
+									className={`relative max-w-[75%] ${
+										msg.message_type === "sticker" && typeof msg.content === "string" && (msg.content.startsWith("/") || msg.content.startsWith("http"))
+											? ""
+											: `rounded-2xl px-4 py-2 ${isOwn ? "bg-discord-accent text-white" : "bg-gray-700"}`
+									}`}
+									role="button"
+									tabIndex={0}
+									onClick={(e) => {
+										e.stopPropagation();
+										handleMessageClick(msg);
+									}}
+								>
 								{activeMessageId === msg.id && !msg.is_deleted && (
 									<div
 										className={`absolute -top-10 ${
@@ -335,13 +332,13 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 								{msg.is_deleted ? (
 									<p className="italic text-sm text-gray-300">このメッセージは削除されました</p>
 								) : msg.message_type === "image" && msg.attachment_url ? (
-									<img
-										src={msg.attachment_url}
-										alt="upload"
-										className="rounded-lg max-h-64 object-cover"
-									/>
+									<img src={msg.attachment_url} alt="upload" className="rounded-lg max-h-64 object-cover" />
 								) : msg.message_type === "sticker" ? (
-									<span className="text-4xl leading-none">{msg.content}</span>
+									typeof msg.content === "string" && (msg.content.startsWith("/") || msg.content.startsWith("http")) ? (
+										<img src={msg.content} alt="sticker" className="w-[220px] h-[220px] object-contain" />
+									) : (
+										<span className="text-4xl leading-none">{msg.content}</span>
+									)
 								) : (
 									<p className="whitespace-pre-line break-words">{msg.content}</p>
 								)}
