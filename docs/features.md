@@ -30,6 +30,7 @@ Chillow の現状機能を実務想定の仕様レベルで整理したドキュ
   - `DELETE /api/messages/:id` で送信者のみ削除可能（添付ファイルはストレージからも削除）。
   - `POST /api/messages/:id/read` で既読化。
   - `POST /api/messages/media` で添付アップロード（ローカル or S3 互換ストレージを選択可能）。
+  - `POST /api/messages/:id/report` で受信したメッセージを理由付きで通報。メッセージ単位で重複通報を抑制。
 - WebSocket (`ws://<host>/ws`):
   - `join`, `message:send`, `message:edit`, `message:delete`, `typing:start/stop`, `ping` をサポート。
   - サーバーはイベントごとにフレンド関係を再検証し、無効な場合は `room:revoked` を返して強制的に離脱させる。
@@ -40,14 +41,27 @@ Chillow の現状機能を実務想定の仕様レベルで整理したドキュ
   - WebSocket でリアルタイム更新し、友達一覧も未読件数・オンライン状態を即時反映。
   - 再読み込みボタンは不要で、`useFriendsData` がログイン状態を見て自動更新。
   - 編集可否ルール: テキスト or テキスト+絵文字のみ編集可。スタンプおよび絵文字単体メッセージはレイアウト維持のため編集不可だが削除は可能。
+  - 受信メッセージには「通報」アクションを用意し、即座に API へ報告を送信できる。
 
-## 4. ストレージポリシー
+## 4. 管理者 / モデレーション
+
+- 管理者アカウントは環境変数 `ADMIN_EMAILS` に登録されたメールアドレスのみ付与。通常ユーザーは常に `user` ロール。
+- 管理 API (`/api/admin/...`) は Cookie + admin ロールを必須とし、以下を提供。
+  - `GET /api/admin/health`
+  - `POST /api/admin/users/:id/ban`（理由必須、オプションで `duration_hours` を指定して期限付き BAN）
+  - `POST /api/admin/users/:id/unban`
+  - `GET /api/admin/reports` / `POST /api/admin/reports/:id/resolve`（BAN or 拒否）
+  - `GET /api/admin/banned-users`
+- BAN 中ユーザーは REST/WS すべての API が 403 となり、ログイン済みでも利用できない。期限付き BAN は時間経過で自動解除。
+- 管理者は通常チャット UI にアクセスせず、専用の `/admin` 画面で通報一覧確認、BAN/拒否、BAN リスト管理、ログアウトのみを行う。
+
+## 5. ストレージポリシー
 
 - `ATTACHMENT_STORAGE=local|s3` で保存先を切替。
 - `local`: `UPLOAD_DIR` 配下に `uploads/chat/<user_id>/` 形式で保存。`/uploads` を静的に配信。
 - `s3`: 最小限の SigV4 署名で互換バケットに PUT/DELETE。`attachment_object` にキーを保持し、メッセージ削除やフレンド削除時にクリーンアップ。
 
-## 5. その他仕様メモ
+## 6. その他仕様メモ
 
 - フレンド関係が失効すると対象ルームへの WebSocket イベントは `room:revoked` が優先され、チャット画面では履歴クリア＋アラートを表示。
 - `useFriendsData` は未ログイン時に API を呼び出さないため、401 やネットワークエラー時でも UI が崩壊しない。

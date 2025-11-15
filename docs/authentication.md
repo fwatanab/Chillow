@@ -47,16 +47,33 @@ Chillow の開発環境向け認証／権限方針を以下のように統一し
 | nickname | VARCHAR(50) | - |
 | friend_code | VARCHAR(20) | Unique |
 | avatar_url | TEXT | - |
-| role | VARCHAR(20) | `admin` / `user` (初期ユーザーは admin) |
+| role | VARCHAR(20) | `admin` / `user`（`ADMIN_EMAILS` に含まれるメールのみ admin） |
+| is_banned | TINYINT(1) | BAN 中か |
+| banned_at | DATETIME NULL | BAN 開始時刻 |
+| ban_reason | TEXT NULL | BAN 理由 |
+| ban_expires_at | DATETIME NULL | 期限付き BAN の解除予定時刻 |
 | created_at / updated_at | DATETIME | - |
 
 ### 認証/権限の流れ
 
 1. `AuthMiddleware` は Authorization ヘッダの Bearer token を優先的に、無ければ Cookie から取得。
-2. `ParseAccessToken` で JWT を検証し、`user_id` と `user_role` を Context に保存。
-3. 各 API グループで `middleware.AuthMiddleware()` を使用。
-4. 管理者専用 API は `middleware.RequireRoles("admin")` で明示的に保護。
-5. `/ws` も Cookie ベースで認証し、接続後は **ルーム参加時・メッセージ送受信時に都度フレンド関係を再検証**。フレンド解除済みのルームには `room:revoked` を返して強制的に切断することで、不正なチャネル継続を防いでいる。
+2. `ParseAccessToken` で JWT を検証し、`user_id` をもとに DB から最新のユーザー情報を取得。BAN 状態であれば 403 を返す。BAN 期限を過ぎていれば自動的に解除する。
+3. `user_role` を Context に保存し、各 API グループで `middleware.AuthMiddleware()` を使用。
+4. 管理者専用 API は `middleware.RequireRoles("admin")` で明示的に保護し、ユーザー向け API は `middleware.ForbidRoles("admin")` で拒否する（管理者はチャット機能を利用できない）。
+5. `/ws` も Cookie ベースで認証し、接続前に BAN 状態とロールを再確認。接続後は **ルーム参加時・メッセージ送受信時に都度フレンド関係を再検証**。フレンド解除済みのルームには `room:revoked` を返して強制的に切断することで、不正なチャネル継続を防いでいる。
+
+---
+
+## 管理者ロールと BAN
+
+- 管理者ロールは `.env` の `ADMIN_EMAILS`（カンマ区切り）に記載されたメールアドレスにのみ付与され、初回ユーザーであっても自動的に admin にはならない。
+- 現在の管理 API:
+  - `GET /api/admin/health`
+  - `POST /api/admin/users/:id/ban`（理由必須、任意で `duration_hours` 指定）
+  - `POST /api/admin/users/:id/unban`
+- BAN 中は REST / WebSocket へのアクセスを完全に遮断する。期限付き BAN はミドルウェアが解除時刻を過ぎたタイミングで自動的に解除。
+- `/api/admin/reports` と `POST /api/admin/reports/:id/resolve` で通報一覧の取得と BAN/拒否を実施し、`/api/admin/banned-users` で BAN リストを確認可能。
+- 管理 UI は `/admin` として別画面を提供し、ユーザー向けチャット UI とは完全に分離している。
 
 ---
 

@@ -12,6 +12,8 @@ WebSocket / 添付アップロード / 既読管理など、実務レベルの�
 - テキスト・画像・スタンプ・絵文字送信、編集/削除、既読/タイピング/オンライン表示
 - 添付ストレージはローカル or S3 互換バケットを選択可能
 - フレンド解除時は対象ルームのメッセージ・既読・添付を即時パージし、`room:revoked` を配信
+- ユーザーは相手のメッセージを通報でき、管理者が BAN / 拒否を判断
+- 管理者は専用 API / 画面からユーザーの BAN / 解除を行い、モデレーションを実施可能
 - マイページでプロフィール変更、ログアウト、アカウント削除
 
 詳細仕様は `docs/requirements.md` と `docs/features.md` を参照してください。
@@ -43,7 +45,7 @@ WebSocket / 添付アップロード / 既読管理など、実務レベルの�
 
 ## 環境設定
 
-1. ルートに `.env`（または `backend/.env` などサービスごと）を配置し、共通設定を記述します。
+1. ルートに `.env`（または `backend/.env`）を配置し、共通設定を記述します。バックエンドは起動時に両方のファイルを自動的に読み込み、既存の環境変数を上書きしません。
 
    ```env
    FRONTEND_URL=http://localhost:5173
@@ -64,6 +66,9 @@ WebSocket / 添付アップロード / 既読管理など、実務レベルの�
    S3_REGION=ap-northeast-1
    S3_ACCESS_KEY=...
    S3_SECRET_KEY=...
+
+   # 管理者として扱うメールアドレス（カンマ区切り）
+   ADMIN_EMAILS=ops@example.com,owner@example.com
    ```
 
 2. `docker-compose.yml` を使う場合は `.env` の内容がコンテナにも渡るよう設定してください。
@@ -88,6 +93,8 @@ make dev    # フォアグラウンド（ログを見ながら起動）
 - ログ閲覧: `make logs SERVICE=backend`
 - DB 初期化: `make reset-db`
 - コマンド一覧: `make help`
+
+> **補足:** `make build` はフロント (`npm run build`) とバックエンド (`go build ./...`) のビルドをまとめて実行するターゲットであり、サーバーの起動は行いません。CI やデプロイ前の検証用途として利用してください。
 
 ### 2. 手動実行（ローカルで個別に起動する場合）
 
@@ -135,3 +142,17 @@ Makefile        # 開発向けコマンド集
 - `docs/authentication.md` : 認証/認可の設計
 
 それぞれ最新の仕様と合わせて随時更新しています。
+
+---
+
+## 管理者 / モデレーション方針
+
+- `ADMIN_EMAILS` に登録されているメールアドレスのみ `admin` ロールでサインインします。それ以外のユーザーは常に `user` ロールです。
+- 管理 API (`/api/admin/...`) は Cookie 認証 + admin ロールが必須で、現状は以下の機能を提供しています。
+  - `POST /api/admin/users/:id/ban` : 期限付きまたは無期限でユーザーを BAN（理由必須）
+  - `POST /api/admin/users/:id/unban` : BAN 解除
+  - `GET /api/admin/reports` / `POST /api/admin/reports/:id/resolve` : 通報一覧と BAN/拒否操作
+  - `GET /api/admin/banned-users` : BAN リスト取得
+  - `GET /api/admin/health` : 管理系 API の生存確認
+- BAN 中のユーザーは REST / WebSocket すべてのエンドポイントへアクセスできません。期限付き BAN の場合は有効期限を過ぎると自動で解除されます。
+- 実運用では、別サブドメインの管理 UI やオペレーター用ツールからこれらの API を呼び出すことを想定しています。本リポジトリでは API レイヤの実装に留めつつ、通報確認と BAN 管理だけを行う最小限の管理画面（`/admin`）を同梱しています。管理者はチャット UI にはアクセスできません。
