@@ -1,7 +1,9 @@
 package config
 
 import (
+	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -29,11 +31,14 @@ type Config struct {
 	S3AccessKey       string
 	S3SecretKey       string
 	S3UsePathStyle    bool
+	AdminEmails       []string
 }
 
 var Cfg *Config // グローバルにアクセス可能な設定
 
 func LoadConfig() {
+	preloadEnvFiles()
+
 	// 環境変数から構成を読み取る
 	Cfg = &Config{
 		JWTSecret:          os.Getenv("JWT_SECRET"),
@@ -59,6 +64,7 @@ func LoadConfig() {
 		S3AccessKey:       os.Getenv("S3_ACCESS_KEY"),
 		S3SecretKey:       os.Getenv("S3_SECRET_KEY"),
 		S3UsePathStyle:    parseBool(getEnv("S3_USE_PATH_STYLE", "false")),
+		AdminEmails:       splitAndTrim(os.Getenv("ADMIN_EMAILS")),
 	}
 }
 
@@ -76,4 +82,73 @@ func parseBool(val string) bool {
 	default:
 		return false
 	}
+}
+
+func splitAndTrim(val string) []string {
+	if val == "" {
+		return nil
+	}
+	parts := strings.Split(val, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		clean := strings.TrimSpace(part)
+		if clean != "" {
+			out = append(out, clean)
+		}
+	}
+	return out
+}
+
+func preloadEnvFiles() {
+	candidates := []string{
+		".env",
+		"../.env",
+		"backend/.env",
+		"../backend/.env",
+	}
+	seen := make(map[string]struct{})
+	for _, rel := range candidates {
+		abs, err := filepath.Abs(rel)
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[abs]; ok {
+			continue
+		}
+		seen[abs] = struct{}{}
+		if err := loadEnvFile(abs); err != nil {
+			continue
+		}
+	}
+}
+
+func loadEnvFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		idx := strings.Index(line, "=")
+		if idx <= 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		if key == "" {
+			continue
+		}
+		value := strings.TrimSpace(line[idx+1:])
+		value = strings.Trim(value, `"'`)
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		_ = os.Setenv(key, value)
+	}
+	return scanner.Err()
 }
