@@ -83,6 +83,7 @@ func SetupRouter() *gin.Engine {
 			admin.GET("/health", controller.AdminHealthHandler)
 			admin.POST("/users/:id/ban", controller.AdminBanUserHandler)
 			admin.POST("/users/:id/unban", controller.AdminUnbanUserHandler)
+			admin.GET("/events", controller.AdminEventsHandler)
 			admin.GET("/reports", controller.AdminListReportsHandler)
 			admin.POST("/reports/:id/resolve", controller.AdminResolveReportHandler)
 			admin.GET("/banned-users", controller.AdminListBannedUsersHandler)

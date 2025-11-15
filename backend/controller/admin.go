@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"chillow/adminstream"
 	"chillow/db"
 	"chillow/model"
 	"chillow/ws"
@@ -17,6 +19,51 @@ import (
 
 func AdminHealthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "admin endpoint reachable"})
+}
+
+func AdminEventsHandler(c *gin.Context) {
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "stream not supported"})
+		return
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+
+	ch, cancel := adminstream.Subscribe()
+	defer cancel()
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	notify := c.Request.Context().Done()
+
+	for {
+		select {
+		case evt, ok := <-ch:
+			if !ok {
+				return
+			}
+			data, err := json.Marshal(evt)
+			if err != nil {
+				continue
+			}
+			if _, err := c.Writer.Write([]byte("data: " + string(data) + "\n\n")); err != nil {
+				return
+			}
+			flusher.Flush()
+		case <-ticker.C:
+			if _, err := c.Writer.Write([]byte(": keep-alive\n\n")); err != nil {
+				return
+			}
+			flusher.Flush()
+		case <-notify:
+			return
+		}
+	}
 }
 
 func AdminBanUserHandler(c *gin.Context) {
@@ -69,6 +116,7 @@ func AdminBanUserHandler(c *gin.Context) {
 		return
 	}
 	ws.DisconnectUser(user.ID, reason)
+	adminstream.Broadcast(adminstream.Event{Type: "user:banned", User: &user})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "user banned",
@@ -98,6 +146,7 @@ func AdminUnbanUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unban user"})
 		return
 	}
+	adminstream.Broadcast(adminstream.Event{Type: "user:unbanned", User: &user})
 
 	c.JSON(http.StatusOK, gin.H{"message": "user unbanned"})
 }
@@ -199,6 +248,9 @@ func AdminResolveReportHandler(c *gin.Context) {
 	if err := db.DB.Save(&report).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update report"})
 		return
+	}
+	if err := db.DB.Preload("Reporter").Preload("ReportedUser").Preload("HandledByUser").First(&report, report.ID).Error; err == nil {
+		adminstream.Broadcast(adminstream.Event{Type: "report:resolved", Report: &report})
 	}
 	cleanupAttachmentEvidence(report.MessageID, report.AttachmentObj)
 	c.JSON(http.StatusOK, report)

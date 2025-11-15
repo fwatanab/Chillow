@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"chillow/adminstream"
 	"chillow/db"
 	"chillow/model"
 
@@ -76,6 +78,12 @@ func ReportMessageHandler(c *gin.Context) {
 	if err := db.DB.Create(&report).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create report"})
 		return
+	}
+
+	if err := db.DB.Preload("Reporter").Preload("ReportedUser").First(&report, report.ID).Error; err != nil {
+		log.Printf("⚠️ failed to preload report: %v", err)
+	} else {
+		adminstream.Broadcast(adminstream.Event{Type: "report:new", Report: &report})
 	}
 
 	c.JSON(http.StatusCreated, report)
