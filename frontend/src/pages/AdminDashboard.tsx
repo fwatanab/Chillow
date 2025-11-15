@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { authLoadingState, currentUserState } from "../store/auth";
@@ -16,8 +16,8 @@ const AdminDashboard = () => {
 	const [loading, setViewLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [resolvingId, setResolvingId] = useState<number | null>(null);
-	const [refreshKey, setRefreshKey] = useState(0);
 	const navigate = useNavigate();
+	const apiBase = useMemo(() => import.meta.env.VITE_API_URL ?? "http://localhost:8080/api", []);
 
 	const loadData = async () => {
 		try {
@@ -36,9 +36,55 @@ const AdminDashboard = () => {
 
 	useEffect(() => {
 		loadData();
-	}, [refreshKey]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
-	const handleRefresh = () => setRefreshKey((k) => k + 1);
+	useEffect(() => {
+		const source = new EventSource(`${apiBase}/admin/events`, { withCredentials: true });
+		source.onmessage = (event) => {
+			try {
+				const payload = JSON.parse(event.data) as { type: string; report?: AdminReport; user?: BannedUser };
+				switch (payload.type) {
+					case "report:new":
+						if (payload.report) {
+							setReports((prev) => {
+								const exists = prev.some((r) => r.id === payload.report!.id);
+								return exists ? prev : [payload.report!, ...prev];
+							});
+						}
+						break;
+					case "report:resolved":
+						if (payload.report) {
+							setReports((prev) => prev.filter((report) => report.id !== payload.report!.id));
+						}
+						break;
+					case "user:banned":
+						if (payload.user) {
+							setBannedUsers((prev) => {
+								const exists = prev.some((user) => user.id === payload.user!.id);
+								return exists ? prev.map((user) => (user.id === payload.user!.id ? payload.user! : user)) : [payload.user!, ...prev];
+							});
+						}
+						break;
+					case "user:unbanned":
+						if (payload.user) {
+							setBannedUsers((prev) => prev.filter((user) => user.id !== payload.user!.id));
+						}
+						break;
+					default:
+						break;
+				}
+			} catch (err) {
+				console.error("❌ 管理イベントの処理に失敗", err);
+			}
+		};
+		source.onerror = () => {
+			console.error("⚠️ 管理イベントストリームでエラーが発生");
+		};
+		return () => {
+			source.close();
+		};
+	}, [apiBase]);
 
 	const handleResolve = async (report: AdminReport, action: "ban" | "reject") => {
 		try {
@@ -48,12 +94,22 @@ const AdminDashboard = () => {
 				if (!banReason) return;
 				const durationInput = window.prompt("BAN期間を時間で指定（空欄で無期限）");
 				const duration = durationInput ? Number(durationInput) : null;
-				await resolveReport(report.id, { action: "ban", ban_reason: banReason, duration_hours: duration ?? undefined });
+				const updated = await resolveReport(report.id, { action: "ban", ban_reason: banReason, duration_hours: duration ?? undefined });
+				setReports((prev) => prev.filter((item) => item.id !== report.id));
+				if (updated.reported_user) {
+					setBannedUsers((prev) => {
+						const exists = prev.some((user) => user.id === updated.reported_user!.id);
+						if (exists) {
+							return prev.map((user) => (user.id === updated.reported_user!.id ? { ...user, ...updated.reported_user } : user));
+						}
+						return [{ ...updated.reported_user, is_banned: true }, ...prev];
+					});
+				}
 			} else {
 				const note = window.prompt("拒否理由（任意）") ?? "";
 				await resolveReport(report.id, { action: "reject", note });
+				setReports((prev) => prev.filter((item) => item.id !== report.id));
 			}
-			handleRefresh();
 		} catch (err) {
 			console.error("❌ レポート処理に失敗", err);
 			alert("処理に失敗しました");
@@ -66,7 +122,7 @@ const AdminDashboard = () => {
 		if (!window.confirm("BANを解除しますか？")) return;
 		try {
 			await unbanUser(userId);
-			handleRefresh();
+			setBannedUsers((prev) => prev.filter((user) => user.id !== userId));
 		} catch (err) {
 			console.error("❌ BAN解除に失敗", err);
 			alert("BAN解除に失敗しました");
@@ -95,9 +151,6 @@ const AdminDashboard = () => {
 				</div>
 				<div className="flex items-center gap-4">
 					<span className="text-sm text-gray-300">{currentUser?.email}</span>
-					<button type="button" className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600" onClick={handleRefresh}>
-						再読込
-					</button>
 					<button type="button" className="px-3 py-2 rounded bg-red-500/80 hover:bg-red-500" onClick={handleLogout}>
 						ログアウト
 					</button>
