@@ -53,10 +53,10 @@ const Home = () => {
     return (
       <div className="h-screen flex flex-col text-discord-text bg-discord-background">
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              className="px-3 py-1 rounded bg-gray-700 text-white"
+              className="px-3 py-1 rounded bg-gray-700 text-white mr-1"
               onClick={() => navigate("/")}
             >
               戻る

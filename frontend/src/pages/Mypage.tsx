@@ -39,10 +39,10 @@ const Mypage = () => {
   if (isMobile) {
     return (
       <div className="h-screen bg-discord-background text-discord-text flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-gray-800">
+        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
           <button
             type="button"
-            className="px-3 py-1 rounded bg-gray-700 text-white"
+            className="px-3 py-1 rounded bg-gray-700 text-white mr-1"
             onClick={() => navigate("/")}
           >
             戻る
