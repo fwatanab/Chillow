@@ -5,9 +5,11 @@ import type { ReactElement } from 'react';
 
 interface Props {
 	children: ReactElement;
+	allowRoles?: string[];
+	redirectPath?: string;
 }
 
-const PrivateRoute = ({ children }: Props): ReactElement => {
+const PrivateRoute = ({ children, allowRoles, redirectPath }: Props): ReactElement => {
 	const currentUser = useRecoilValue(currentUserState);
 	const loading = useRecoilValue(authLoadingState);
 
@@ -19,7 +21,16 @@ const PrivateRoute = ({ children }: Props): ReactElement => {
 		);
 	}
 
-	return currentUser ? children : <Navigate to="/login" replace />;
+	if (!currentUser) {
+		return <Navigate to="/login" replace />;
+	}
+
+	if (allowRoles && !allowRoles.includes(currentUser.role)) {
+		const fallback = currentUser.role === "admin" ? "/admin" : "/";
+		return <Navigate to={redirectPath ?? fallback} replace />;
+	}
+
+	return children;
 };
 
 export default PrivateRoute;

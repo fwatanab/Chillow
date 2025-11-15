@@ -23,14 +23,14 @@ const Login = () => {
       storeUser(res.user);
       setUser(res.user);
       setLoading(false);
-      navigate('/');
+      navigate(res.user.role === "admin" ? "/admin" : "/");
     } catch (err) {
       console.error("❌ サーバー認証に失敗しました", err);
     }
   };
 
   if (currentUser) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={currentUser.role === "admin" ? "/admin" : "/"} replace />;
   }
 
   return (
