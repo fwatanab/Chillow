@@ -8,6 +8,7 @@ export type AdminReport = {
 	message_content: string;
 	message_type: string;
 	attachment_url?: string | null;
+	attachment_object?: string | null;
 	reason: string;
 	status: string;
 	resolution?: string | null;

@@ -10,6 +10,7 @@ type Report struct {
 	MessageContent string     `json:"message_content"`
 	MessageType    string     `json:"message_type"`
 	AttachmentURL  *string    `json:"attachment_url"`
+	AttachmentObj  *string    `json:"attachment_object"`
 	Reason         string     `json:"reason"`
 	Status         string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Resolution     *string    `json:"resolution"`

@@ -307,11 +307,18 @@ func DeleteMessageHandler(c *gin.Context) {
 	now := time.Now()
 	msg.IsDeleted = true
 	msg.DeletedAt = &now
-	if msg.AttachmentObj != nil {
-		_ = storage.Default().Delete(*msg.AttachmentObj)
+	if msg.AttachmentObj != nil && *msg.AttachmentObj != "" {
+		if hasPendingReports(msg.ID) {
+			log.Printf("ℹ️ preserve attachment for message %d due to pending reports", msg.ID)
+		} else {
+			if err := storage.Default().Delete(*msg.AttachmentObj); err != nil {
+				log.Printf("⚠️ failed to delete attachment: %v", err)
+			} else {
+				msg.AttachmentURL = nil
+				msg.AttachmentObj = nil
+			}
+		}
 	}
-	msg.AttachmentURL = nil
-	msg.AttachmentObj = nil
 	msg.Content = ""
 	msg.UpdatedAt = now
 	if err := db.DB.Save(&msg).Error; err != nil {

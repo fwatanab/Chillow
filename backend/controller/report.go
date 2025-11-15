@@ -69,6 +69,7 @@ func ReportMessageHandler(c *gin.Context) {
 		MessageContent: msg.Content,
 		MessageType:    msg.MessageType,
 		AttachmentURL:  msg.AttachmentURL,
+		AttachmentObj:  msg.AttachmentObj,
 		Reason:         reason,
 		Status:         "pending",
 	}

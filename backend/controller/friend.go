@@ -371,7 +371,11 @@ func DeleteFriendHandler(c *gin.Context) {
 			for _, msg := range messages {
 				messageIDs = append(messageIDs, msg.ID)
 				if msg.AttachmentObj != nil && *msg.AttachmentObj != "" {
-					attachmentKeys = append(attachmentKeys, *msg.AttachmentObj)
+					if hasPendingReports(msg.ID) {
+						log.Printf("ℹ️ preserve attachment for message %d due to pending reports", msg.ID)
+					} else {
+						attachmentKeys = append(attachmentKeys, *msg.AttachmentObj)
+					}
 				}
 			}
 
