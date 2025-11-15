@@ -28,6 +28,7 @@ func main() {
 		&model.FriendRequest{},
 		&model.Message{},
 		&model.MessageRead{},
+		&model.Report{},
 	); err != nil {
 		log.Fatalf("❌ AutoMigrate失敗: %v", err)
 	}

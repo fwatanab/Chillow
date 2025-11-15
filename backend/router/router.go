@@ -48,7 +48,7 @@ func SetupRouter() *gin.Engine {
 
 		// フレンド申請・承認・一覧など
 		friendRequests := api.Group("/friend-requests")
-		friendRequests.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		friendRequests.Use(middleware.AuthMiddleware(), middleware.ForbidRoles("admin")) // 🔐 JWTミドルウェア
 		{
 			friendRequests.POST("", controller.SendFriendRequestHandler)
 			friendRequests.GET("", controller.GetFriendRequestsHandler)
@@ -57,7 +57,7 @@ func SetupRouter() *gin.Engine {
 
 		// フレンド一覧・削除
 		friends := api.Group("/friends")
-		friends.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		friends.Use(middleware.AuthMiddleware(), middleware.ForbidRoles("admin")) // 🔐 JWTミドルウェア
 		{
 			friends.GET("", controller.GetFriendsHandler)
 			friends.DELETE("/:id", controller.DeleteFriendHandler)
@@ -65,7 +65,7 @@ func SetupRouter() *gin.Engine {
 
 		// メッセージ関連
 		messages := api.Group("/messages")
-		messages.Use(middleware.AuthMiddleware()) // 🔐 JWTミドルウェア
+		messages.Use(middleware.AuthMiddleware(), middleware.ForbidRoles("admin")) // 🔐 JWTミドルウェア
 		{
 			messages.GET("/:friend_id", controller.GetMessagesHandler)
 			messages.POST("", controller.PostMessageHandler)
@@ -73,6 +73,7 @@ func SetupRouter() *gin.Engine {
 			messages.POST("/:id/read", controller.MarkMessageAsReadHandler)
 			messages.PATCH("/:id", controller.UpdateMessageHandler)
 			messages.DELETE("/:id", controller.DeleteMessageHandler)
+			messages.POST("/:id/report", controller.ReportMessageHandler)
 		}
 
 		// 管理者専用
@@ -80,6 +81,11 @@ func SetupRouter() *gin.Engine {
 		admin.Use(middleware.AuthMiddleware(), middleware.RequireRoles("admin"))
 		{
 			admin.GET("/health", controller.AdminHealthHandler)
+			admin.POST("/users/:id/ban", controller.AdminBanUserHandler)
+			admin.POST("/users/:id/unban", controller.AdminUnbanUserHandler)
+			admin.GET("/reports", controller.AdminListReportsHandler)
+			admin.POST("/reports/:id/resolve", controller.AdminResolveReportHandler)
+			admin.GET("/banned-users", controller.AdminListBannedUsersHandler)
 		}
 
 		// 		// 通知関連（未読件数など）
