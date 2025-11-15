@@ -11,6 +11,7 @@ type Props = {
 	friendsError: string | null;
 	onSelectFriend: (friend: Friend) => void;
 	onOpenFriendManage: () => void;
+	isMobile?: boolean;
 };
 
 const Sidebar = ({
@@ -20,12 +21,13 @@ const Sidebar = ({
 	friendsError,
 	onSelectFriend,
 	onOpenFriendManage,
+	isMobile = false,
 }: Props) => {
+	const containerClass = isMobile ? "w-full h-full" : "w-72";
+
 	return (
-		<aside className="w-72 bg-discord-sidebar flex flex-col">
-			<SidebarHeader
-				onOpenFriendManage={onOpenFriendManage}
-			/>
+		<aside className={`bg-discord-sidebar flex flex-col ${containerClass}`}>
+			<SidebarHeader onOpenFriendManage={onOpenFriendManage} isMobile={isMobile} />
 			<div className="flex-1 overflow-y-auto">
 				<FriendList
 					onSelectFriend={onSelectFriend}

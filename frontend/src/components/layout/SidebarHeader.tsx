@@ -1,5 +1,6 @@
 type Props = {
-  onOpenFriendManage: () => void;
+	onOpenFriendManage: () => void;
+	isMobile?: boolean;
 };
 
 const SidebarHeader = ({ onOpenFriendManage }: Props) => {
