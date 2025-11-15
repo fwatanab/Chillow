@@ -20,6 +20,15 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
+
+	AttachmentStorage string
+	UploadDir         string
+	S3Bucket          string
+	S3Region          string
+	S3Endpoint        string
+	S3AccessKey       string
+	S3SecretKey       string
+	S3UsePathStyle    bool
 }
 
 var Cfg *Config // グローバルにアクセス可能な設定
@@ -41,6 +50,15 @@ func LoadConfig() {
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
 		DBName:     os.Getenv("DB_NAME"),
+
+		AttachmentStorage: getEnv("ATTACHMENT_STORAGE", "local"),
+		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
+		S3Bucket:          os.Getenv("S3_BUCKET"),
+		S3Region:          getEnv("S3_REGION", "ap-northeast-1"),
+		S3Endpoint:        os.Getenv("S3_ENDPOINT"),
+		S3AccessKey:       os.Getenv("S3_ACCESS_KEY"),
+		S3SecretKey:       os.Getenv("S3_SECRET_KEY"),
+		S3UsePathStyle:    parseBool(getEnv("S3_USE_PATH_STYLE", "false")),
 	}
 }
 

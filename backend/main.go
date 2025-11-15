@@ -7,6 +7,7 @@ import (
 	"chillow/db"
 	"chillow/model"
 	"chillow/router"
+	"chillow/storage"
 )
 
 func main() {
@@ -16,12 +17,17 @@ func main() {
 	// DB接続
 	db.InitDB()
 
+	if err := storage.Init(config.Cfg); err != nil {
+		log.Fatalf("❌ ストレージ初期化失敗: %v", err)
+	}
+
 	// スキーマを最新化（ユーザー／友達／申請／メッセージ）
 	if err := db.DB.AutoMigrate(
 		&model.User{},
 		&model.Friend{},
 		&model.FriendRequest{},
 		&model.Message{},
+		&model.MessageRead{},
 	); err != nil {
 		log.Fatalf("❌ AutoMigrate失敗: %v", err)
 	}

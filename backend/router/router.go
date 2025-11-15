@@ -11,7 +11,7 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	r.Static("/uploads", "./uploads")
+	r.Static("/uploads", config.Cfg.UploadDir)
 
 	// CORS 設定
 	r.Use(cors.New(cors.Config{
