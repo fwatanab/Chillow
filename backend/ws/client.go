@@ -28,6 +28,7 @@ func NewClient(userID uint, conn *websocket.Conn, hub *Hub) *Client {
 }
 
 func (c *Client) Start() {
+	registerClient(c)
 	go c.writeLoop()
 	go c.readLoop()
 }
@@ -61,6 +62,7 @@ func (c *Client) writeLoop() {
 
 func (c *Client) Close() {
 	c.closeOnce.Do(func() {
+		unregisterClient(c)
 		// ルーム離脱
 		for roomID := range c.joinedRooms {
 			c.hub.Leave(roomID, c)

@@ -9,6 +9,7 @@ import (
 
 	"chillow/db"
 	"chillow/model"
+	"chillow/ws"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -67,6 +68,7 @@ func AdminBanUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ban user"})
 		return
 	}
+	ws.DisconnectUser(user.ID, reason)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "user banned",
@@ -183,6 +185,7 @@ func AdminResolveReportHandler(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ban user"})
 			return
 		}
+		ws.DisconnectUser(user.ID, banReason)
 		note = fmt.Sprintf("BAN: %s", banReason)
 	}
 
@@ -197,6 +200,7 @@ func AdminResolveReportHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update report"})
 		return
 	}
+	cleanupAttachmentEvidence(report.MessageID, report.AttachmentObj)
 	c.JSON(http.StatusOK, report)
 }
 
