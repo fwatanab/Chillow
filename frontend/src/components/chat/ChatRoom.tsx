@@ -4,6 +4,7 @@ import type { Friend } from "../../types/friend";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import { uploadMessageAttachment, reportMessage } from "../../services/api/chat";
 import { EMOJI_PRESETS, STICKER_PRESETS, type PickerMode } from "../../constants/chatPalette";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 interface Props {
 	friend: Friend;
@@ -30,6 +31,7 @@ const formatDateLabel = (value: string) => {
 
 const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const chatEndRef = useRef<HTMLDivElement>(null);
+	const photoInputRef = useRef<HTMLInputElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const isComposing = useRef(false);
 	const typingPulseRef = useRef<number | null>(null);
@@ -47,11 +49,13 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const [messageText, setMessageText] = useState("");
 	const [editingMessage, setEditingMessage] = useState<MessagePayload | null>(null);
 	const [pickerOpen, setPickerOpen] = useState(false);
+	const [uploadPickerOpen, setUploadPickerOpen] = useState(false);
 	const [pickerMode, setPickerMode] = useState<PickerMode>("emoji");
 	const [lastPickerMode, setLastPickerMode] = useState<PickerMode>("emoji");
 	const [uploading, setUploading] = useState(false);
 	const typingIndicator = useMemo(() => (isFriendTyping ? `${friend.friend_nickname} が入力中...` : null), [friend.friend_nickname, isFriendTyping]);
 	const friendOnlineState = isFriendOnline || Boolean(friend.is_online);
+	const isMobile = useIsMobile();
 
 	useEffect(() => {
 		chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -134,6 +138,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 			setUploading(false);
 			e.target.value = "";
 		}
+		setUploadPickerOpen(false);
 	};
 
 	const handleStickerSelect = (sticker: string) => {
@@ -161,6 +166,28 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const changePickerMode = (mode: PickerMode) => {
 		setPickerMode(mode);
 		setLastPickerMode(mode);
+	};
+
+	const toggleUploadPicker = (e?: React.MouseEvent) => {
+		e?.stopPropagation();
+		if (!isMobile) {
+			triggerFileSelect();
+			return;
+		}
+		setUploadPickerOpen((prev) => !prev);
+		setPickerOpen(false);
+	};
+
+	const triggerPhotoSelect = (e?: React.MouseEvent) => {
+		e?.stopPropagation();
+		setUploadPickerOpen(false);
+		photoInputRef.current?.click();
+	};
+
+	const triggerFileSelect = (e?: React.MouseEvent) => {
+		e?.stopPropagation();
+		setUploadPickerOpen(false);
+		fileInputRef.current?.click();
 	};
 
 	const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
@@ -205,6 +232,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const handleWorkspaceClick = () => {
 		setActiveMessageId(null);
 		setPickerOpen(false);
+		setUploadPickerOpen(false);
 	};
 
 	return (
@@ -329,9 +357,21 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 			)}
 			<div className="p-4 border-t border-gray-700 flex flex-col gap-2">
 				<div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-					<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={() => fileInputRef.current?.click()}>
-						画像
-					</button>
+					<div className="relative">
+						<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={toggleUploadPicker}>
+							＋
+						</button>
+						{uploadPickerOpen && (
+							<div className="absolute bottom-full mb-2 left-0 bg-gray-900/95 rounded-lg shadow text-sm flex flex-col min-w-[120px] p-2 z-20">
+								<button type="button" className="px-2 py-1 rounded hover:bg-gray-800 text-left" onClick={triggerPhotoSelect}>
+									写真
+								</button>
+								<button type="button" className="px-2 py-1 rounded hover:bg-gray-800 text-left" onClick={triggerFileSelect}>
+									ファイル
+								</button>
+							</div>
+						)}
+					</div>
 					<div className="flex-1 flex items-center bg-gray-700 rounded">
 					<input
 						type="text"
@@ -421,13 +461,8 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 				</div>
 			)}
 			</div>
-			<input
-				type="file"
-				accept="image/*"
-				ref={fileInputRef}
-				className="hidden"
-				onChange={handleFileChange}
-			/>
+			<input type="file" accept="image/*" ref={photoInputRef} className="hidden" onChange={handleFileChange} />
+			<input type="file" accept="*/*" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
 		</div>
 	);
 };
