@@ -18,3 +18,7 @@ export const uploadMessageAttachment = async (file: File): Promise<{ url: string
 	});
 	return res.data;
 };
+
+export const reportMessage = async (messageId: number, reason: string): Promise<void> => {
+	await axios.post(`/messages/${messageId}/report`, { reason });
+};

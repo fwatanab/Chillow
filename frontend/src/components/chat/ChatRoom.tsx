@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ChangeEv
 import type { MessagePayload } from "../../types/chat";
 import type { Friend } from "../../types/friend";
 import { useChatSocket } from "../../hooks/useChatSocket";
-import { uploadMessageAttachment } from "../../services/api/chat";
+import { uploadMessageAttachment, reportMessage } from "../../services/api/chat";
 
 interface Props {
 	friend: Friend;
@@ -166,6 +166,19 @@ const ChatRoom = ({ friend }: Props) => {
 		}
 	};
 
+	const handleReportMessage = async (message: MessagePayload) => {
+		if (!message.id) return;
+		const reason = window.prompt("通報理由を入力してください");
+		if (!reason) return;
+		try {
+			await reportMessage(message.id, reason);
+			alert("通報しました。対応までしばらくお待ちください。");
+		} catch (err) {
+			console.error("❌ 通報に失敗", err);
+			alert("通報に失敗しました");
+		}
+	};
+
 	return (
 		<div className="flex flex-col h-full bg-discord-background text-discord-text">
 			<header className="p-4 border-b border-gray-700 flex items-center justify-between">
@@ -204,6 +217,17 @@ const ChatRoom = ({ friend }: Props) => {
 										onClick={() => confirmDelete(msg)}
 									>
 										削除
+									</button>
+								</div>
+							)}
+							{!msg.isOwn && !msg.is_deleted && (
+								<div className="absolute -top-3 left-0 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+									<button
+										type="button"
+										className="text-xs text-white/80 hover:text-red-200"
+										onClick={() => handleReportMessage(msg)}
+									>
+										通報
 									</button>
 								</div>
 							)}
