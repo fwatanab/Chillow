@@ -35,6 +35,13 @@ const FriendRequests = ({ onResponded }: Props) => {
     fetchRequests();
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      fetchRequests();
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   // 承認 / 拒否
   const handleRespond = async (id: number, accepted: boolean) => {
     const status: FriendRequestStatus = accepted ? "accepted" : "declined";

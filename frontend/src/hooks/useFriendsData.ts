@@ -55,6 +55,16 @@ export function useFriendsData() {
 
 	useEffect(() => {
 		if (!currentUser) return;
+		const interval = window.setInterval(() => {
+			reload();
+		}, 5_000);
+		return () => {
+			window.clearInterval(interval);
+		};
+	}, [currentUser, reload]);
+
+	useEffect(() => {
+		if (!currentUser) return;
 		friends.forEach((friend) => {
 			const roomId = buildRoomId(currentUser.id, friend.friend_id);
 			if (!joinedRoomsRef.current.has(roomId)) {
