@@ -6,10 +6,12 @@ import { uploadMessageAttachment, reportMessage } from "../../services/api/chat"
 
 interface Props {
 	friend: Friend;
+	showHeader?: boolean;
 }
 
 const STICKERS = ["🎉", "😊", "👏", "🔥", "😎", "❤️", "🥳", "👍"];
 const QUICK_EMOJIS = ["😀", "😂", "😍", "🤔", "😢", "👏", "👍", "🙌"];
+type PickerMode = "emoji" | "sticker";
 const emojiOnlyRegex = /^\p{Extended_Pictographic}+$/u;
 const isEmojiOnly = (text: string) => {
 	const trimmed = text.trim();
@@ -31,7 +33,7 @@ const formatTimestamp = (value: string) => {
 				.padStart(2, "0")}`;
 };
 
-const ChatRoom = ({ friend }: Props) => {
+const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const chatEndRef = useRef<HTMLDivElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const isComposing = useRef(false);
@@ -49,8 +51,9 @@ const ChatRoom = ({ friend }: Props) => {
 	} = useChatSocket(friend.friend_id);
 	const [messageText, setMessageText] = useState("");
 	const [editingMessage, setEditingMessage] = useState<MessagePayload | null>(null);
-	const [showStickerPicker, setShowStickerPicker] = useState(false);
-	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const [pickerMode, setPickerMode] = useState<PickerMode>("emoji");
+	const [lastPickerMode, setLastPickerMode] = useState<PickerMode>("emoji");
 	const [uploading, setUploading] = useState(false);
 	const typingIndicator = useMemo(() => (isFriendTyping ? `${friend.friend_nickname} が入力中...` : null), [friend.friend_nickname, isFriendTyping]);
 	const friendOnlineState = isFriendOnline || Boolean(friend.is_online);
@@ -140,11 +143,29 @@ const ChatRoom = ({ friend }: Props) => {
 
 	const handleStickerSelect = (sticker: string) => {
 		sendMessage(sticker, { messageType: "sticker" });
-		setShowStickerPicker(false);
+		setPickerOpen(false);
+		setPickerMode("sticker");
+		setLastPickerMode("sticker");
 	};
 
 	const handleEmojiSelect = (emoji: string) => {
 		setMessageText((prev) => prev + emoji);
+		setPickerMode("emoji");
+		setLastPickerMode("emoji");
+	};
+
+	const togglePicker = () => {
+		setPickerOpen((prev) => {
+			if (!prev) {
+				setPickerMode(lastPickerMode);
+			}
+			return !prev;
+		});
+	};
+
+	const changePickerMode = (mode: PickerMode) => {
+		setPickerMode(mode);
+		setLastPickerMode(mode);
 	};
 
 	const startEditing = (message: MessagePayload) => {
@@ -181,16 +202,27 @@ const ChatRoom = ({ friend }: Props) => {
 
 	return (
 		<div className="flex flex-col h-full bg-discord-background text-discord-text">
-			<header className="p-4 border-b border-gray-700 flex items-center justify-between">
-				<div>
-					<p className="text-lg font-semibold">{friend.friend_nickname}</p>
-					<p className="text-sm text-gray-400">
-						{friendOnlineState ? "オンライン" : "オフライン"}
-						{typingIndicator ? ` ・ ${typingIndicator}` : ""}
-					</p>
-				</div>
-			</header>
-			<div className="flex-1 overflow-y-auto p-4 space-y-4">
+			{showHeader && (
+				<header className="p-4 border-b border-gray-700 flex items-center justify-between">
+					<div className="flex items-center gap-3">
+						{friend.friend_avatar_url ? (
+							<img src={friend.friend_avatar_url} alt={friend.friend_nickname} className="w-10 h-10 rounded-full object-cover" />
+						) : (
+							<div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white text-lg">
+								{friend.friend_nickname?.[0]?.toUpperCase() ?? "?"}
+							</div>
+						)}
+						<div>
+							<p className="text-lg font-semibold">{friend.friend_nickname}</p>
+							<p className="text-sm text-gray-400">
+								{friendOnlineState ? "オンライン" : "オフライン"}
+								{typingIndicator ? ` ・ ${typingIndicator}` : ""}
+							</p>
+						</div>
+					</div>
+				</header>
+			)}
+			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 				{messages.map((msg: MessagePayload, idx: number) => {
 					const alignment = msg.isOwn ? "items-end" : "items-start";
 					return (
@@ -272,23 +304,10 @@ const ChatRoom = ({ friend }: Props) => {
 				</button>
 				<button
 					type="button"
-					className={`px-3 py-2 rounded text-sm ${showStickerPicker ? "bg-discord-accent" : "bg-gray-700"}`}
-					onClick={() => {
-						setShowStickerPicker((prev) => !prev);
-						setShowEmojiPicker(false);
-					}}
+					className={`px-3 py-2 rounded text-sm ${pickerOpen ? "bg-discord-accent" : "bg-gray-700"}`}
+					onClick={togglePicker}
 				>
-					スタンプ
-				</button>
-				<button
-					type="button"
-					className={`px-3 py-2 rounded text-sm ${showEmojiPicker ? "bg-discord-accent" : "bg-gray-700"}`}
-					onClick={() => {
-						setShowEmojiPicker((prev) => !prev);
-						setShowStickerPicker(false);
-					}}
-				>
-					絵文字
+					スタンプ / 絵文字
 				</button>
 			</div>
 				<div className="flex gap-2">
@@ -319,22 +338,37 @@ const ChatRoom = ({ friend }: Props) => {
 						{editingMessage ? "更新" : "送信"}
 					</button>
 				</div>
-			{showStickerPicker && (
-				<div className="bg-gray-800 rounded-lg p-3 flex flex-wrap gap-3">
-					{STICKERS.map((sticker) => (
-						<button key={sticker} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
-							{sticker}
+			{pickerOpen && (
+				<div className="bg-gray-800 rounded-lg p-3 flex flex-col gap-3">
+					<div className="flex gap-2">
+						<button
+							type="button"
+							className={`px-3 py-1 rounded text-sm ${pickerMode === "emoji" ? "bg-discord-accent text-white" : "bg-gray-700"}`}
+							onClick={() => changePickerMode("emoji")}
+						>
+							絵文字
 						</button>
-					))}
-				</div>
-			)}
-			{showEmojiPicker && (
-				<div className="bg-gray-800 rounded-lg p-3 flex flex-wrap gap-3">
-					{QUICK_EMOJIS.map((emoji) => (
-						<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
-							{emoji}
+						<button
+							type="button"
+							className={`px-3 py-1 rounded text-sm ${pickerMode === "sticker" ? "bg-discord-accent text-white" : "bg-gray-700"}`}
+							onClick={() => changePickerMode("sticker")}
+						>
+							スタンプ
 						</button>
-					))}
+					</div>
+					<div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto">
+						{pickerMode === "emoji"
+							? QUICK_EMOJIS.map((emoji) => (
+									<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
+										{emoji}
+									</button>
+							  ))
+							: STICKERS.map((sticker) => (
+									<button key={sticker} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
+										{sticker}
+									</button>
+							  ))}
+					</div>
 				</div>
 			)}
 			</div>
