@@ -3,15 +3,13 @@ import type { MessagePayload } from "../../types/chat";
 import type { Friend } from "../../types/friend";
 import { useChatSocket } from "../../hooks/useChatSocket";
 import { uploadMessageAttachment, reportMessage } from "../../services/api/chat";
+import { EMOJI_PRESETS, STICKER_PRESETS, type PickerMode } from "../../constants/chatPalette";
 
 interface Props {
 	friend: Friend;
 	showHeader?: boolean;
 }
 
-const STICKERS = ["🎉", "😊", "👏", "🔥", "😎", "❤️", "🥳", "👍"];
-const QUICK_EMOJIS = ["😀", "😂", "😍", "🤔", "😢", "👏", "👍", "🙌"];
-type PickerMode = "emoji" | "sticker";
 const emojiOnlyRegex = /^\p{Extended_Pictographic}+$/u;
 const isEmojiOnly = (text: string) => {
 	const trimmed = text.trim();
@@ -408,13 +406,13 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 							e.stopPropagation();
 						}}
 					>
-				{pickerMode === "emoji"
-					? QUICK_EMOJIS.map((emoji) => (
-							<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
+						{pickerMode === "emoji"
+							? EMOJI_PRESETS.map((emoji) => (
+									<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
 										{emoji}
 									</button>
 							  ))
-							: STICKERS.map((sticker) => (
+							: STICKER_PRESETS.map((sticker) => (
 									<button key={sticker} type="button" className="text-2xl" onClick={() => handleStickerSelect(sticker)}>
 										{sticker}
 									</button>
