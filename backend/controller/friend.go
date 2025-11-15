@@ -63,6 +63,10 @@ func SendFriendRequestHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error (find receiver)"})
 		return
 	}
+	if receiver.Role == "admin" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot send request to this user"})
+		return
+	}
 
 	// すでにフレンドか（accepted 相当は friends で判定）
 	isFriend, err := model.AreFriends(requesterID, body.ReceiverID)

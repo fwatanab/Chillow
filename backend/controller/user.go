@@ -58,9 +58,19 @@ func SearchUserByCodeHandler(c *gin.Context) {
 	}
 	code = strings.ToUpper(code)
 
+	currentUserID := c.GetUint("user_id")
+
 	var user model.User
 	if err := db.DB.Where("friend_code = ?", code).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "ユーザーが見つかりません"})
+		return
+	}
+	if user.ID == currentUserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "自分自身は検索できません"})
+		return
+	}
+	if strings.EqualFold(user.Role, "admin") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "このユーザーにはフレンド申請できません"})
 		return
 	}
 
