@@ -214,23 +214,25 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 			{showHeader && (
 				<header className="p-4 border-b border-gray-700 flex items-center justify-between">
 					<div className="flex items-center gap-3">
-						{friend.friend_avatar_url ? (
-							<img src={friend.friend_avatar_url} alt={friend.friend_nickname} className="w-10 h-10 rounded-full object-cover" />
-						) : (
-							<div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white text-lg">
-								{friend.friend_nickname?.[0]?.toUpperCase() ?? "?"}
-							</div>
-						)}
+						<div className="relative">
+							{friend.friend_avatar_url ? (
+								<img src={friend.friend_avatar_url} alt={friend.friend_nickname} className="w-10 h-10 rounded-full object-cover" />
+							) : (
+								<div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white text-lg">
+									{friend.friend_nickname?.[0]?.toUpperCase() ?? "?"}
+								</div>
+							)}
+							{friendOnlineState && (
+								<span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-discord-background" />
+							)}
+						</div>
 						<div>
 							<p className="text-lg font-semibold">{friend.friend_nickname}</p>
-							<p className="text-sm text-gray-400">
-								{friendOnlineState ? "オンライン" : "オフライン"}
-								{typingIndicator ? ` ・ ${typingIndicator}` : ""}
-							</p>
+							<p className="text-sm text-gray-400">{typingIndicator ?? ""}</p>
 						</div>
 					</div>
-			</header>
-		)}
+				</header>
+			)}
 			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 				{messages.map((msg: MessagePayload, idx: number) => {
 					const prevMessage = idx > 0 ? messages[idx - 1] : null;
