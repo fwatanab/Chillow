@@ -7,6 +7,7 @@ import Sidebar from "../components/layout/Sidebar";
 import { useFriendsData } from "../hooks/useFriendsData";
 import { useRecoilValue } from "recoil";
 import { currentUserState } from "../store/auth";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const tabs = [
 	{ key: "add", label: "フレンド追加" },
@@ -21,18 +22,10 @@ const FriendManage = () => {
   const currentUser = useRecoilValue(currentUserState);
   const { friends, loading, error, reload } = useFriendsData();
   const [activeTab, setActiveTab] = useState<TabKey>("add");
+  const isMobile = useIsMobile();
 
-  return (
-    <div className="flex h-screen bg-discord-background text-discord-text">
-      <Sidebar
-        currentUser={currentUser}
-        friends={friends}
-        friendsLoading={loading}
-        friendsError={error}
-        onSelectFriend={(friend) => navigate(`/chat/${friend.friend_id}`)}
-        onOpenFriendManage={() => {}}
-      />
-      <main className="flex-1 p-6 space-y-4">
+  const tabsContent = (
+    <>
 		<div className="flex gap-4 border-b border-gray-700">
 			{tabs.map((tab) => (
 				<button
@@ -61,7 +54,38 @@ const FriendManage = () => {
 				<FriendManageList friends={friends} loading={loading} error={error} onReload={reload} />
 			</div>
 		)}
-      </main>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="h-screen bg-discord-background text-discord-text flex flex-col">
+        <div className="flex items-center gap-2 p-4 border-b border-gray-800">
+          <button
+            type="button"
+            className="px-3 py-1 rounded bg-gray-700 text-white"
+            onClick={() => navigate("/")}
+          >
+            戻る
+          </button>
+          <h1 className="text-lg font-semibold">フレンドマネージャー</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">{tabsContent}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-discord-background text-discord-text">
+      <Sidebar
+        currentUser={currentUser}
+        friends={friends}
+        friendsLoading={loading}
+        friendsError={error}
+        onSelectFriend={(friend) => navigate(`/chat/${friend.friend_id}`)}
+        onOpenFriendManage={() => {}}
+      />
+      <main className="flex-1 p-6 space-y-4">{tabsContent}</main>
     </div>
   );
 };

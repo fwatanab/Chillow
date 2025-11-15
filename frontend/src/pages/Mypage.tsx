@@ -5,6 +5,7 @@ import { authLoadingState, currentUserState } from "../store/auth";
 import { clearStoredUser } from "../utils/authStorage";
 import Sidebar from "../components/layout/Sidebar";
 import { useFriendsData } from "../hooks/useFriendsData";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const Mypage = () => {
   const currentUser = useRecoilValue(currentUserState);
@@ -12,6 +13,7 @@ const Mypage = () => {
   const setLoading = useSetRecoilState(authLoadingState);
   const navigate = useNavigate();
   const { friends, loading, error } = useFriendsData();
+  const isMobile = useIsMobile();
 
   const handleLogout = async () => {
     try {
@@ -30,6 +32,37 @@ const Mypage = () => {
     return (
       <div className="p-6">
         <p>ユーザー情報を取得できませんでした。</p>
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="h-screen bg-discord-background text-discord-text flex flex-col">
+        <div className="flex items-center gap-2 p-4 border-b border-gray-800">
+          <button
+            type="button"
+            className="px-3 py-1 rounded bg-gray-700 text-white"
+            onClick={() => navigate("/")}
+          >
+            戻る
+          </button>
+          <h1 className="text-lg font-semibold">マイページ</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="space-y-2">
+            <p>ニックネーム: {currentUser.nickname}</p>
+            <p>メール: {currentUser.email}</p>
+            <p>フレンドコード: {currentUser.friend_code}</p>
+            <p>権限: {currentUser.role}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 w-full"
+          >
+            ログアウト
+          </button>
+        </div>
       </div>
     );
   }
