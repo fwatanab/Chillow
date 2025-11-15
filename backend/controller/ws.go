@@ -3,13 +3,17 @@ package controller
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"chillow/config"
+	"chillow/db"
+	"chillow/model"
 	authsvc "chillow/service/auth"
 	"chillow/ws"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"gorm.io/gorm"
 )
 
 // WebSocketのUpgrade設定
@@ -38,6 +42,28 @@ func WSHandler(c *gin.Context) {
 	claims, err := authsvc.ParseAccessToken(token)
 	if err != nil || claims.UserID == 0 {
 		c.String(http.StatusUnauthorized, "invalid token")
+		return
+	}
+
+	var user model.User
+	if err := db.DB.First(&user, claims.UserID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.String(http.StatusUnauthorized, "user not found")
+			return
+		}
+		c.String(http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	if user.ShouldLiftBan(time.Now()) {
+		user.ClearBan()
+		_ = db.DB.Save(&user).Error
+	}
+	if user.IsBanned {
+		c.String(http.StatusForbidden, "account suspended")
+		return
+	}
+	if user.Role == "admin" {
+		c.String(http.StatusForbidden, "admin accounts cannot join chat")
 		return
 	}
 
