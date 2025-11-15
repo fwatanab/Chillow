@@ -8,7 +8,7 @@ import type { Friend } from "../types/friend";
 import { useFriendsData } from "../hooks/useFriendsData";
 
 const Home = () => {
-  const { friends, loading: friendsLoading, error: friendsError, reload } = useFriendsData();
+  const { friends, loading: friendsLoading, error: friendsError } = useFriendsData();
   const currentUser = useRecoilValue(currentUserState);
   const { friendId } = useParams<{ friendId?: string }>();
   const navigate = useNavigate();
@@ -39,7 +39,6 @@ const Home = () => {
         friends={friends}
         friendsLoading={friendsLoading}
         friendsError={friendsError}
-        onReloadFriends={reload}
         onSelectFriend={handleSelectFriend}
         onOpenFriendManage={() => navigate("/friends/manage")}
       />

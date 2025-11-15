@@ -9,7 +9,6 @@ type Props = {
 	friends: Friend[];
 	friendsLoading: boolean;
 	friendsError: string | null;
-	onReloadFriends: () => void;
 	onSelectFriend: (friend: Friend) => void;
 	onOpenFriendManage: () => void;
 };
@@ -19,7 +18,6 @@ const Sidebar = ({
 	friends,
 	friendsLoading,
 	friendsError,
-	onReloadFriends,
 	onSelectFriend,
 	onOpenFriendManage,
 }: Props) => {
@@ -34,7 +32,6 @@ const Sidebar = ({
 					friends={friends}
 					loading={friendsLoading}
 					error={friendsError}
-					onReload={onReloadFriends}
 				/>
 			</div>
 			<SidebarFooter currentUser={currentUser} />

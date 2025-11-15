@@ -7,7 +7,6 @@ type Props = {
   friends?: Friend[];
   loading?: boolean;
   error?: string | null;
-  onReload?: () => void;
 };
 
 const formatListTimestamp = (value?: string | null) => {
@@ -41,7 +40,7 @@ const buildLastMessagePreview = (friend: Friend) => {
 	}
 };
 
-const FriendList = ({ onSelectFriend, friends, loading, error, onReload }: Props) => {
+const FriendList = ({ onSelectFriend, friends, loading, error }: Props) => {
 	const [internalFriends, setInternalFriends] = useState<Friend[]>([]);
 	const [internalLoading, setInternalLoading] = useState(false);
 	const [internalError, setInternalError] = useState<string | null>(null);
@@ -69,14 +68,6 @@ const FriendList = ({ onSelectFriend, friends, loading, error, onReload }: Props
   const isLoading = typeof loading !== "undefined" ? loading : internalLoading;
   const err = typeof error !== "undefined" ? error : internalError;
 
-  const handleReload = () => {
-    if (onReload) {
-      onReload();
-    } else {
-      fetchFriends();
-    }
-  };
-
   return (
     <div className="space-y-2 p-2">
       <h3 className="text-lg font-semibold mb-2">フレンド一覧</h3>
@@ -87,13 +78,6 @@ const FriendList = ({ onSelectFriend, friends, loading, error, onReload }: Props
       {!isLoading && !err && displayFriends.length === 0 && (
         <div className="text-sm text-gray-400 space-y-2">
           <p>フレンドがいません</p>
-          <button
-            type="button"
-            className="text-discord-accent underline"
-            onClick={handleReload}
-          >
-            再読み込み
-          </button>
         </div>
       )}
 

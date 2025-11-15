@@ -11,7 +11,7 @@ const Mypage = () => {
   const setUser = useSetRecoilState(currentUserState);
   const setLoading = useSetRecoilState(authLoadingState);
   const navigate = useNavigate();
-  const { friends, loading, error, reload } = useFriendsData();
+  const { friends, loading, error } = useFriendsData();
 
   const handleLogout = async () => {
     try {
@@ -41,7 +41,6 @@ const Mypage = () => {
         friends={friends}
         friendsLoading={loading}
         friendsError={error}
-        onReloadFriends={reload}
         onSelectFriend={(friend) => navigate(`/chat/${friend.friend_id}`)}
         onOpenFriendManage={() => navigate("/friends/manage")}
       />
