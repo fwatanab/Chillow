@@ -17,6 +17,26 @@ export function useFriendsData() {
 	const activeFriendId = useRecoilValue(currentChatFriendState);
 	const joinedRoomsRef = useRef<Set<string>>(new Set());
 
+	const prevSnapshotRef = useRef<string>("");
+
+	const hasListChanged = useCallback((prev: Friend[], next: Friend[]) => {
+		if (prev.length !== next.length) return true;
+		for (let i = 0; i < prev.length; i += 1) {
+			const a = prev[i];
+			const b = next.find((item) => item.friend_id === a.friend_id);
+			if (!b) return true;
+			if (
+				a.last_message_id !== b.last_message_id ||
+				a.unread_count !== b.unread_count ||
+				a.last_message_at !== b.last_message_at ||
+				a.is_online !== b.is_online
+			) {
+				return true;
+			}
+		}
+		return false;
+	}, []);
+
 	const reload = useCallback(async () => {
 		if (!currentUser) {
 			setFriends([]);
@@ -28,13 +48,19 @@ export function useFriendsData() {
 			const list = ((await getFriends()) ?? []) as Friend[];
 			setFriends((prev) => {
 				const onlineLookup = new Map(prev.map((f) => [f.friend_id, f.is_online ?? false]));
-				return Array.isArray(list)
+				const next = Array.isArray(list)
 					? list.map((f) => ({
-						...f,
-						is_online: onlineLookup.get(f.friend_id) ?? false,
-						unread_count: f.unread_count ?? 0,
-					}))
+							...f,
+							is_online: onlineLookup.get(f.friend_id) ?? false,
+							unread_count: f.unread_count ?? 0,
+					  }))
 					: [];
+				const snapshot = JSON.stringify(next.map((f) => [f.friend_id, f.last_message_id, f.unread_count, f.is_online]));
+				if (!hasListChanged(prev, next) && prevSnapshotRef.current === snapshot) {
+					return prev;
+				}
+				prevSnapshotRef.current = snapshot;
+				return next;
 			});
 		} catch (err: any) {
 			const status = err?.response?.status;
@@ -57,7 +83,7 @@ export function useFriendsData() {
 		if (!currentUser) return;
 		const interval = window.setInterval(() => {
 			reload();
-		}, 5_000);
+		}, 30_000);
 		return () => {
 			window.clearInterval(interval);
 		};
