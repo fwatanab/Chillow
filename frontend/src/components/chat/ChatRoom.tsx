@@ -168,6 +168,13 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		setLastPickerMode(mode);
 	};
 
+	const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
+
+	const handleMessageClick = (message: MessagePayload) => {
+		setActiveMessageId((prev) => (prev === message.id ? null : message.id ?? null));
+		setPickerOpen(false);
+	};
+
 	const startEditing = (message: MessagePayload) => {
 		if (message.message_type !== "text" || isEmojiOnly(message.content)) {
 			return;
@@ -200,8 +207,13 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		}
 	};
 
+	const handleWorkspaceClick = () => {
+		setActiveMessageId(null);
+		setPickerOpen(false);
+	};
+
 	return (
-		<div className="flex flex-col h-full bg-discord-background text-discord-text">
+		<div className="flex flex-col h-full bg-discord-background text-discord-text" onClick={handleWorkspaceClick}>
 			{showHeader && (
 				<header className="p-4 border-b border-gray-700 flex items-center justify-between">
 					<div className="flex items-center gap-3">
@@ -220,49 +232,48 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 							</p>
 						</div>
 					</div>
-				</header>
-			)}
+			</header>
+		)}
 			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 				{messages.map((msg: MessagePayload, idx: number) => {
 					const alignment = msg.isOwn ? "items-end" : "items-start";
 					return (
-						<div key={msg.id ?? idx} className={`flex flex-col ${alignment} group`}>
+						<div key={msg.id ?? idx} className={`flex flex-col ${alignment}`}>
 							<div
 								className={`relative max-w-[75%] rounded-2xl px-4 py-2 ${
 									msg.isOwn ? "bg-discord-accent text-white" : "bg-gray-700"
 								}`}
+								role="button"
+								tabIndex={0}
+								onClick={(e) => {
+									e.stopPropagation();
+									handleMessageClick(msg);
+								}}
 							>
-							{msg.isOwn && !msg.is_deleted && (
-								<div className="absolute -top-3 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-									{msg.message_type === "text" && !isEmojiOnly(msg.content) && (
-										<button
-											type="button"
-											className="text-xs text-white/80 hover:text-white"
-											onClick={() => startEditing(msg)}
-										>
-											編集
-										</button>
-									)}
-									<button
-										type="button"
-										className="text-xs text-white/80 hover:text-red-200"
-										onClick={() => confirmDelete(msg)}
+								{activeMessageId === msg.id && !msg.is_deleted && (
+									<div
+										className={`absolute -top-10 ${
+											msg.isOwn ? "right-0" : "left-0"
+										} flex gap-2 bg-gray-900/90 px-3 py-1 rounded-lg shadow text-xs`}
 									>
-										削除
-									</button>
-								</div>
-							)}
-							{!msg.isOwn && !msg.is_deleted && (
-								<div className="absolute -top-3 left-0 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-									<button
-										type="button"
-										className="text-xs text-white/80 hover:text-red-200"
-										onClick={() => handleReportMessage(msg)}
-									>
-										通報
-									</button>
-								</div>
-							)}
+										{msg.isOwn ? (
+											<>
+												{msg.message_type === "text" && !isEmojiOnly(msg.content) && (
+													<button type="button" className="text-white/80 hover:text-white" onClick={() => startEditing(msg)}>
+														編集
+													</button>
+												)}
+												<button type="button" className="text-white/80 hover:text-red-200" onClick={() => confirmDelete(msg)}>
+													削除
+												</button>
+											</>
+										) : (
+											<button type="button" className="text-white/80 hover:text-red-200" onClick={() => handleReportMessage(msg)}>
+												通報
+											</button>
+										)}
+									</div>
+								)}
 								{msg.is_deleted ? (
 									<p className="italic text-sm text-gray-300">このメッセージは削除されました</p>
 								) : msg.message_type === "image" && msg.attachment_url ? (
@@ -298,24 +309,16 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 				</div>
 			)}
 			<div className="p-4 border-t border-gray-700 flex flex-col gap-2">
-			<div className="flex items-center gap-2">
-				<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={() => fileInputRef.current?.click()}>
-					画像
-				</button>
-				<button
-					type="button"
-					className={`px-3 py-2 rounded text-sm ${pickerOpen ? "bg-discord-accent" : "bg-gray-700"}`}
-					onClick={togglePicker}
-				>
-					スタンプ / 絵文字
-				</button>
-			</div>
-				<div className="flex gap-2">
+				<div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+					<button type="button" className="px-3 py-2 bg-gray-700 rounded text-sm" onClick={() => fileInputRef.current?.click()}>
+						画像
+					</button>
+					<div className="flex-1 flex items-center bg-gray-700 rounded">
 					<input
 						type="text"
 						value={messageText}
 						placeholder="メッセージを入力..."
-						className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-white focus:outline-none"
+						className="flex-1 px-4 py-2 bg-transparent text-white focus:outline-none"
 						onChange={handleMessageChange}
 						onKeyDown={handleKeyDown}
 						onCompositionStart={() => {
@@ -324,6 +327,7 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 						onCompositionEnd={() => {
 							isComposing.current = false;
 						}}
+						onFocus={() => setPickerOpen(false)}
 						onBlur={() => {
 							if (typingActiveRef.current) {
 								typingActiveRef.current = false;
@@ -332,14 +336,35 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 						}}
 					/>
 					<button
-						onClick={handleSend}
-						className="bg-discord-accent px-4 py-2 rounded-lg text-white hover:opacity-90"
+						type="button"
+						className={`px-3 py-2 text-sm rounded-r ${pickerOpen ? "bg-discord-accent text-white" : "bg-gray-600 text-white"}`}
+						onClick={(e) => {
+							e.stopPropagation();
+							togglePicker();
+						}}
+					>
+						S
+					</button>
+					</div>
+					<button
+						type="button"
+						className="px-4 py-2 bg-discord-accent text-white rounded disabled:opacity-50"
+						onClick={(e) => {
+							e.stopPropagation();
+							handleSend();
+						}}
+						disabled={!messageText.trim() && !editingMessage}
 					>
 						{editingMessage ? "更新" : "送信"}
 					</button>
 				</div>
 			{pickerOpen && (
-				<div className="bg-gray-800 rounded-lg p-3 flex flex-col gap-3">
+				<div
+					className="bg-gray-800 rounded-lg p-3 flex flex-col gap-3"
+					onClick={(e) => {
+						e.stopPropagation();
+					}}
+				>
 					<div className="flex gap-2">
 						<button
 							type="button"
@@ -356,10 +381,15 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 							スタンプ
 						</button>
 					</div>
-					<div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto">
-						{pickerMode === "emoji"
-							? QUICK_EMOJIS.map((emoji) => (
-									<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
+					<div
+						className="flex flex-wrap gap-3 max-h-40 overflow-y-auto"
+						onClick={(e) => {
+							e.stopPropagation();
+						}}
+					>
+				{pickerMode === "emoji"
+					? QUICK_EMOJIS.map((emoji) => (
+							<button key={emoji} type="button" className="text-xl" onClick={() => handleEmojiSelect(emoji)}>
 										{emoji}
 									</button>
 							  ))
