@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"chillow/db"
 	"chillow/model"
+	"chillow/ws"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -331,5 +333,21 @@ func DeleteFriendHandler(c *gin.Context) {
 		return
 	}
 
+	roomID := ws.BuildRoomID(userID, uint(id))
+	broadcastRoomRevoked(roomID)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Friend deleted"})
+}
+
+func broadcastRoomRevoked(roomID string) {
+	if hub == nil {
+		return
+	}
+	event := ws.RoomRevokedEvent{Type: "room:revoked", RoomID: roomID}
+	bytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("⚠️ failed to marshal revoke event: %v", err)
+		return
+	}
+	hub.Broadcast(roomID, bytes)
 }

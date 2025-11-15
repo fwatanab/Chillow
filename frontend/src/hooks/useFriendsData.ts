@@ -12,31 +12,42 @@ export function useFriendsData() {
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const { onType, join } = useWebSocket();
 	const currentUser = useRecoilValue(currentUserState);
+	const { onType, join } = useWebSocket({ autoConnect: Boolean(currentUser) });
 	const activeFriendId = useRecoilValue(currentChatFriendState);
 	const joinedRoomsRef = useRef<Set<string>>(new Set());
 
 	const reload = useCallback(async () => {
+		if (!currentUser) {
+			setFriends([]);
+			return;
+		}
 		setLoading(true);
 		setError(null);
 		try {
-			const list = await getFriends();
+			const list = ((await getFriends()) ?? []) as Friend[];
 			setFriends((prev) => {
 				const onlineLookup = new Map(prev.map((f) => [f.friend_id, f.is_online ?? false]));
-				return list.map((f) => ({
-					...f,
-					is_online: onlineLookup.get(f.friend_id) ?? false,
-					unread_count: f.unread_count ?? 0,
-				}));
+				return Array.isArray(list)
+					? list.map((f) => ({
+						...f,
+						is_online: onlineLookup.get(f.friend_id) ?? false,
+						unread_count: f.unread_count ?? 0,
+					}))
+					: [];
 			});
-		} catch (err) {
-			console.error("❌ フレンド取得失敗", err);
-			setError("フレンドの取得に失敗しました");
+		} catch (err: any) {
+			const status = err?.response?.status;
+			if (status === 401) {
+				setFriends([]);
+			} else {
+				console.error("❌ フレンド取得失敗", err);
+				setError("フレンドの取得に失敗しました");
+			}
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [currentUser]);
 
 	useEffect(() => {
 		reload();
@@ -114,12 +125,18 @@ export function useFriendsData() {
 				)
 			);
 		});
+		const offRevoked = onType("room:revoked", (event) => {
+			const friendId = parseFriendIdFromRoom(event.roomId);
+			if (!friendId) return;
+			setFriends((prev) => prev.filter((friend) => friend.friend_id !== friendId));
+		});
 		return () => {
 			offNew();
 			offUpdated();
 			offDeleted();
 			offRead();
 			offPresence();
+			offRevoked();
 		};
 	}, [applyMessageMeta, onType, parseFriendIdFromRoom]);
 

@@ -79,6 +79,14 @@ func (c *Client) joinRoom(roomID string) {
 	c.hub.Join(roomID, c)
 }
 
+func (c *Client) leaveRoom(roomID string) {
+	if _, exists := c.joinedRooms[roomID]; !exists {
+		return
+	}
+	delete(c.joinedRooms, roomID)
+	c.hub.Leave(roomID, c)
+}
+
 func (c *Client) sendJSON(v any) error {
 	b, err := json.Marshal(v)
 	if err != nil {
