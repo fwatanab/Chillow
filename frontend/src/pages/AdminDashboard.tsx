@@ -19,6 +19,8 @@ const AdminDashboard = () => {
 	const [activeTab, setActiveTab] = useState<"reports" | "banned">("reports");
 	const navigate = useNavigate();
 	const apiBase = useMemo(() => import.meta.env.VITE_API_URL ?? "http://localhost:8080/api", []);
+	const adminAvatar = currentUser?.avatar_url ?? "";
+	const adminInitial = (currentUser?.nickname || currentUser?.email || "?").charAt(0).toUpperCase();
 
 	const loadData = async () => {
 		try {
@@ -285,11 +287,20 @@ const AdminDashboard = () => {
 			</main>
 
 			<footer className="bg-[#292b31] border-t border-white/5">
-				<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-3 px-4 py-4 text-sm text-white/70 sm:justify-between sm:px-6">
-					<div className="space-y-1 min-w-0 flex-1">
-						<p className="text-xs uppercase tracking-wide text-white/50">ログイン中の管理者</p>
-						<p className="text-base font-semibold text-white">{currentUser?.nickname ?? "(名無し)"}</p>
-						<p className="break-all">{currentUser?.email ?? "-"}</p>
+				<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-4 px-4 py-4 text-sm text-white/70 sm:justify-between sm:px-6">
+					<div className="flex min-w-0 flex-1 items-center gap-3">
+						<div className="h-12 w-12 rounded-full border border-white/10 bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-base font-bold text-white">
+							{adminAvatar ? (
+								<img src={adminAvatar} alt="admin avatar" className="h-full w-full rounded-full object-cover" />
+							) : (
+								adminInitial
+							)}
+						</div>
+						<div className="space-y-1 min-w-0">
+							<p className="text-xs uppercase tracking-wide text-white/50">管理者</p>
+							<p className="text-base font-semibold text-white truncate">{currentUser?.nickname ?? "(名無し)"}</p>
+							<p className="break-all">{currentUser?.email ?? "-"}</p>
+						</div>
 					</div>
 					<button
 						type="button"
