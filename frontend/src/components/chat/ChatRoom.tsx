@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ChangeEvent } from "react";
 import type { MessagePayload } from "../../types/chat";
 import type { Friend } from "../../types/friend";
 import { useChatSocket } from "../../hooks/useChatSocket";
@@ -31,6 +31,8 @@ const formatDateLabel = (value: string) => {
 
 const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const chatEndRef = useRef<HTMLDivElement>(null);
+	const messageListRef = useRef<HTMLDivElement>(null);
+	const messageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 	const photoInputRef = useRef<HTMLInputElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const isComposing = useRef(false);
@@ -53,13 +55,58 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 	const [pickerMode, setPickerMode] = useState<PickerMode>("emoji");
 	const [lastPickerMode, setLastPickerMode] = useState<PickerMode>("emoji");
 	const [uploading, setUploading] = useState(false);
+	const [showScrollButton, setShowScrollButton] = useState(false);
+	const [shouldStickToBottom, setShouldStickToBottom] = useState(true);
 	const typingIndicator = useMemo(() => (isFriendTyping ? `${friend.friend_nickname} が入力中...` : null), [friend.friend_nickname, isFriendTyping]);
 	const friendOnlineState = isFriendOnline || Boolean(friend.is_online);
 	const isMobile = useIsMobile();
+	const initialScrollDone = useRef(false);
+	const initialUnreadCountRef = useRef(friend.unread_count ?? 0);
+
+	const scrollToBottom = useCallback(
+		(behavior: ScrollBehavior = "smooth") => {
+			chatEndRef.current?.scrollIntoView({ behavior, block: "end" });
+		},
+		[]
+	);
+
+	const scrollToMessage = useCallback((messageId: number, behavior: ScrollBehavior = "auto") => {
+		const target = messageRefs.current.get(messageId);
+		if (target) {
+			target.scrollIntoView({ behavior, block: "start", inline: "nearest" });
+		}
+	}, []);
 
 	useEffect(() => {
-		chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages]);
+		initialScrollDone.current = false;
+		initialUnreadCountRef.current = friend.unread_count ?? 0;
+	}, [friend.friend_id, friend.unread_count]);
+
+	useEffect(() => {
+		if (!messages.length || initialScrollDone.current) return;
+		const unreadCount = initialUnreadCountRef.current ?? 0;
+		if (unreadCount > 0 && unreadCount <= messages.length) {
+			const targetIndex = Math.max(messages.length - unreadCount, 0);
+			const targetMessage = messages[targetIndex];
+			if (targetMessage?.id) {
+				scrollToMessage(targetMessage.id, "auto");
+				setShouldStickToBottom(false);
+				setShowScrollButton(true);
+				initialScrollDone.current = true;
+				return;
+			}
+		}
+		scrollToBottom("auto");
+		initialScrollDone.current = true;
+	}, [messages, scrollToBottom, scrollToMessage]);
+
+	useEffect(() => {
+		if (!messages.length || !initialScrollDone.current) return;
+		const lastMessage = messages[messages.length - 1];
+		if (shouldStickToBottom || lastMessage?.isOwn) {
+			scrollToBottom(lastMessage?.isOwn ? "smooth" : "auto");
+		}
+	}, [messages, scrollToBottom, shouldStickToBottom]);
 
 	useEffect(() => () => {
 		if (typingPulseRef.current) {
@@ -239,6 +286,15 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 		setUploadPickerOpen(false);
 	};
 
+	const handleScroll = () => {
+		const container = messageListRef.current;
+		if (!container) return;
+		const distanceFromBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+		const isNearBottom = distanceFromBottom < 80;
+		setShouldStickToBottom(isNearBottom);
+		setShowScrollButton(!isNearBottom);
+	};
+
 	return (
 		<div className="flex flex-col h-full bg-discord-background text-discord-text" onClick={handleWorkspaceClick}>
 			{showHeader && (
@@ -263,7 +319,8 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 					</div>
 				</header>
 			)}
-			<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+			<div className="relative flex-1 min-h-0">
+				<div ref={messageListRef} className="h-full overflow-y-auto p-4 space-y-4" onScroll={handleScroll}>
 				{messages.map((msg: MessagePayload, idx: number) => {
 					const prevMessage = idx > 0 ? messages[idx - 1] : null;
 					const showDateLabel = !prevMessage || formatDateLabel(prevMessage.created_at) !== formatDateLabel(msg.created_at);
@@ -280,7 +337,18 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 						</div>
 					);
 					return (
-						<div key={msg.id ?? idx} className="flex flex-col gap-1">
+						<div
+							key={msg.id ?? idx}
+							className="flex flex-col gap-1"
+							ref={(el) => {
+								if (!msg.id) return;
+								if (el) {
+									messageRefs.current.set(msg.id, el);
+								} else {
+									messageRefs.current.delete(msg.id);
+								}
+							}}
+						>
 							{showDateLabel && (
 								<div className="flex items-center gap-3 px-6">
 									<div className="flex-1 h-px bg-gray-700" />
@@ -350,6 +418,21 @@ const ChatRoom = ({ friend, showHeader = true }: Props) => {
 					);
 				})}
 				<div ref={chatEndRef} />
+			</div>
+				{showScrollButton && (
+					<button
+						type="button"
+						className="absolute right-4 bottom-4 rounded-full bg-discord-accent/90 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-discord-accent"
+						onClick={(e) => {
+							e.stopPropagation();
+							scrollToBottom();
+							setShouldStickToBottom(true);
+							setShowScrollButton(false);
+						}}
+					>
+						↓ 最新へ
+					</button>
+				)}
 			</div>
 			{typingIndicator && <div className="px-4 text-xs text-gray-400">{typingIndicator}</div>}
 			{uploading && <div className="px-4 text-xs text-gray-400">画像をアップロード中...</div>}
