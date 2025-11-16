@@ -144,119 +144,162 @@ const AdminDashboard = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-950 text-white p-6">
-			<div className="flex items-center justify-between mb-6">
-				<div>
+		<div className="min-h-screen bg-[#1b1d23] text-white flex flex-col">
+			<header className="bg-[#292b31] border-b border-white/5">
+				<div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-4 sm:px-6">
+					<p className="text-sm text-white/60">運営専用モニタリング</p>
 					<h1 className="text-2xl font-semibold">管理ダッシュボード</h1>
-					<p className="text-sm text-gray-400">通報確認・BAN管理専用画面</p>
 				</div>
-				<div className="flex items-center gap-4">
-					<span className="text-sm text-gray-300">{currentUser?.email}</span>
-					<button type="button" className="px-3 py-2 rounded bg-red-500/80 hover:bg-red-500" onClick={handleLogout}>
+			</header>
+
+			<main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
+				<section className="flex flex-wrap gap-3">
+					<div className="min-w-[150px] flex-1 rounded-2xl border border-white/10 bg-[#24262f] p-4 shadow-lg">
+						<p className="text-xs text-white/60">未対応の通報</p>
+						<p className="mt-1 text-3xl font-semibold text-amber-300">{reports.length}</p>
+						<p className="hidden text-xs text-white/50 sm:block">新しい通報はリアルタイムにここへ追加されます。</p>
+						<p className="text-[0.6rem] text-white/50 sm:hidden">リアルタイムで更新されます。</p>
+					</div>
+					<div className="min-w-[150px] flex-1 rounded-2xl border border-white/10 bg-[#24262f] p-4 shadow-lg">
+						<p className="text-xs text-white/60">BAN中ユーザー</p>
+						<p className="mt-1 text-3xl font-semibold text-emerald-300">{bannedUsers.length}</p>
+						<p className="hidden text-xs text-white/50 sm:block">解除は下部カードの「BAN解除」から実行します。</p>
+						<p className="text-[0.6rem] text-white/50 sm:hidden">解除は一覧から実行。</p>
+					</div>
+				</section>
+
+				<section className="rounded-2xl border border-white/10 bg-[#24262f] shadow-2xl">
+					<div className="flex gap-4 border-b border-white/5 px-4 py-4 sm:items-center sm:px-6">
+						<div className="flex-1">
+							<h2 className="text-xl font-semibold">{activeTab === "reports" ? "通報一覧" : "BAN中ユーザー"}</h2>
+							<p className="hidden text-sm text-white/60 sm:block">
+								{activeTab === "reports" ? "ユーザーから寄せられた通報の詳細を確認できます。" : "現在制限中のユーザー一覧です。"}
+							</p>
+							<p className="text-xs text-white/60 sm:hidden">{activeTab === "reports" ? "通報詳細を確認" : "BAN中ユーザー一覧"}</p>
+						</div>
+						<div className="ml-auto flex w-full flex-row justify-end gap-2 text-[0.65rem] text-right sm:w-auto sm:text-sm sm:text-left">
+							<button
+								type="button"
+								className={`w-24 rounded-lg px-2 py-1 font-semibold transition sm:w-36 sm:px-3 sm:py-1.5 ${
+									activeTab === "reports"
+										? "bg-discord-accent text-white shadow-lg"
+										: "bg-white/5 text-white/70 hover:bg-white/10"
+								}`}
+								onClick={() => setActiveTab("reports")}
+							>
+								通報一覧
+							</button>
+							<button
+								type="button"
+								className={`w-24 rounded-lg px-2 py-1 font-semibold transition sm:w-36 sm:px-3 sm:py-1.5 ${
+									activeTab === "banned"
+										? "bg-discord-accent text-white shadow-lg"
+										: "bg-white/5 text-white/70 hover:bg-white/10"
+								}`}
+								onClick={() => setActiveTab("banned")}
+							>
+								BAN中ユーザー
+							</button>
+						</div>
+					</div>
+
+					<div className="px-4 py-4 sm:px-6">
+						{loading ? (
+							<p className="text-white/60">読み込み中...</p>
+						) : error ? (
+							<p className="text-red-400">{error}</p>
+						) : activeTab === "reports" ? (
+							<>
+								{reports.length === 0 ? (
+									<p className="text-sm text-white/60">未対応の通報はありません。</p>
+								) : (
+									<ul className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
+										{reports.map((report) => (
+											<li key={report.id} className="rounded-2xl border border-white/10 bg-[#1f2129] p-4 shadow-inner">
+												<div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-white/70">
+													<span className="font-semibold text-white">{report.reporter.nickname}</span>
+													<span className="text-white/50">→</span>
+													<span className="font-semibold text-white">{report.reported_user.nickname}</span>
+												</div>
+												<p className="whitespace-pre-wrap rounded-xl bg-black/30 px-3 py-2 text-sm text-white/80">
+													{report.message_content || "(添付メッセージ)"}
+												</p>
+												<p className="mt-2 text-xs text-white/60">通報理由: {report.reason}</p>
+												<div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-3">
+													<button
+														type="button"
+														className="flex-1 rounded-lg bg-red-500/80 px-3 py-2 text-sm font-semibold hover:bg-red-500 disabled:opacity-50"
+														disabled={resolvingId === report.id}
+														onClick={() => handleResolve(report, "ban")}
+													>
+														BAN
+													</button>
+													<button
+														type="button"
+														className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20 disabled:opacity-50"
+														disabled={resolvingId === report.id}
+														onClick={() => handleResolve(report, "reject")}
+													>
+														拒否
+													</button>
+												</div>
+											</li>
+										))}
+									</ul>
+								)}
+							</>
+						) : (
+							<>
+								{bannedUsers.length === 0 ? (
+									<p className="text-sm text-white/60">BAN中のユーザーはいません。</p>
+								) : (
+									<ul className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
+										{bannedUsers.map((user) => (
+											<li key={user.id} className="rounded-2xl border border-white/10 bg-[#1f2129] p-4 shadow-inner">
+												<div className="flex flex-col gap-1">
+													<p className="text-lg font-semibold">{user.nickname}</p>
+													<p className="text-xs text-white/60 break-all">{user.email}</p>
+												</div>
+												<p className="mt-2 text-xs text-white/60">理由: {user.ban_reason ?? "未設定"}</p>
+												<p className="text-xs text-white/50">
+													BAN日時: {user.banned_at ? new Date(user.banned_at).toLocaleString() : "不明"}
+												</p>
+												<p className="text-xs text-white/50">
+													解除予定: {user.ban_expires_at ? new Date(user.ban_expires_at).toLocaleString() : "無期限"}
+												</p>
+												<button
+													type="button"
+													className="mt-3 rounded-lg bg-emerald-500/80 px-3 py-2 text-sm font-semibold hover:bg-emerald-500"
+													onClick={() => handleUnban(user.id)}
+												>
+													BAN解除
+												</button>
+											</li>
+										))}
+									</ul>
+								)}
+							</>
+						)}
+					</div>
+				</section>
+			</main>
+
+			<footer className="bg-[#292b31] border-t border-white/5">
+				<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-3 px-4 py-4 text-sm text-white/70 sm:justify-between sm:px-6">
+					<div className="space-y-1 min-w-0 flex-1">
+						<p className="text-xs uppercase tracking-wide text-white/50">ログイン中の管理者</p>
+						<p className="text-base font-semibold text-white">{currentUser?.nickname ?? "(名無し)"}</p>
+						<p className="break-all">{currentUser?.email ?? "-"}</p>
+					</div>
+					<button
+						type="button"
+						className="ml-auto rounded-lg bg-red-500/80 px-4 py-2 font-semibold hover:bg-red-500"
+						onClick={handleLogout}
+					>
 						ログアウト
 					</button>
 				</div>
-			</div>
-
-			<div className="flex gap-3 mb-6">
-				<button
-					type="button"
-					className={`px-4 py-2 rounded ${
-						activeTab === "reports" ? "bg-discord-accent text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-					}`}
-					onClick={() => setActiveTab("reports")}
-				>
-					通報一覧
-				</button>
-				<button
-					type="button"
-					className={`px-4 py-2 rounded ${
-						activeTab === "banned" ? "bg-discord-accent text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-					}`}
-					onClick={() => setActiveTab("banned")}
-				>
-					BAN中ユーザー
-				</button>
-			</div>
-
-			{loading ? (
-				<p className="text-gray-400">読み込み中...</p>
-			) : error ? (
-				<p className="text-red-400">{error}</p>
-			) : (
-				<section className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-					{activeTab === "reports" ? (
-						<>
-							<h2 className="text-xl font-semibold mb-4">未対応の通報</h2>
-							{reports.length === 0 ? (
-								<p className="text-sm text-gray-400">未対応の通報はありません</p>
-							) : (
-								<ul className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-									{reports.map((report) => (
-										<li key={report.id} className="border border-gray-800 rounded-lg p-3">
-											<p className="text-sm text-gray-400 mb-1">
-												{report.reporter.nickname} → {report.reported_user.nickname}
-											</p>
-											<p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-800 rounded px-2 py-1 mb-2">
-												{report.message_content || "(添付メッセージ)"}
-											</p>
-											<p className="text-xs text-gray-400 mb-2">通報理由: {report.reason}</p>
-											<div className="flex gap-2">
-												<button
-													type="button"
-													className="px-3 py-1 rounded bg-red-500/80 hover:bg-red-500 disabled:opacity-50"
-													disabled={resolvingId === report.id}
-													onClick={() => handleResolve(report, "ban")}
-												>
-													BAN
-												</button>
-												<button
-													type="button"
-													className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
-													disabled={resolvingId === report.id}
-													onClick={() => handleResolve(report, "reject")}
-												>
-													拒否
-												</button>
-											</div>
-										</li>
-									))}
-								</ul>
-							)}
-						</>
-					) : (
-						<>
-							<h2 className="text-xl font-semibold mb-4">BAN中ユーザー</h2>
-							{bannedUsers.length === 0 ? (
-								<p className="text-sm text-gray-400">BAN中のユーザーはいません</p>
-							) : (
-								<ul className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-									{bannedUsers.map((user) => (
-										<li key={user.id} className="border border-gray-800 rounded-lg p-3">
-											<p className="font-semibold">{user.nickname}</p>
-											<p className="text-xs text-gray-400 break-all">{user.email}</p>
-											<p className="text-xs text-gray-400">理由: {user.ban_reason ?? "未設定"}</p>
-											<p className="text-xs text-gray-500">
-												BAN日時: {user.banned_at ? new Date(user.banned_at).toLocaleString() : "不明"}
-											</p>
-											<p className="text-xs text-gray-500">
-												解除予定: {user.ban_expires_at ? new Date(user.ban_expires_at).toLocaleString() : "無期限"}
-											</p>
-											<button
-												type="button"
-												className="mt-2 px-3 py-1 rounded bg-green-600/80 hover:bg-green-600"
-												onClick={() => handleUnban(user.id)}
-											>
-												BAN解除
-											</button>
-										</li>
-									))}
-								</ul>
-							)}
-						</>
-					)}
-				</section>
-			)}
+			</footer>
 		</div>
 	);
 };
