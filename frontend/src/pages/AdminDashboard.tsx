@@ -177,10 +177,10 @@ const AdminDashboard = () => {
 							</p>
 							<p className="text-xs text-white/60 sm:hidden">{activeTab === "reports" ? "通報詳細を確認" : "BAN中ユーザー一覧"}</p>
 						</div>
-						<div className="ml-auto flex w-full flex-row justify-end gap-2 text-[0.65rem] text-right sm:w-auto sm:text-sm sm:text-left">
+						<div className="ml-auto flex flex-row justify-end gap-1 text-[0.6rem] text-right sm:w-auto sm:gap-2 sm:text-sm sm:text-left">
 							<button
 								type="button"
-								className={`w-24 rounded-lg px-2 py-1 font-semibold transition sm:w-36 sm:px-3 sm:py-1.5 ${
+								className={`min-w-[4.2rem] rounded-lg px-1 py-0.5 font-semibold transition sm:min-w-[9rem] sm:px-3 sm:py-1.5 ${
 									activeTab === "reports"
 										? "bg-discord-accent text-white shadow-lg"
 										: "bg-white/5 text-white/70 hover:bg-white/10"
@@ -191,7 +191,7 @@ const AdminDashboard = () => {
 							</button>
 							<button
 								type="button"
-								className={`w-24 rounded-lg px-2 py-1 font-semibold transition sm:w-36 sm:px-3 sm:py-1.5 ${
+								className={`min-w-[4.2rem] rounded-lg px-1 py-0.5 font-semibold transition sm:min-w-[9rem] sm:px-3 sm:py-1.5 ${
 									activeTab === "banned"
 										? "bg-discord-accent text-white shadow-lg"
 										: "bg-white/5 text-white/70 hover:bg-white/10"
