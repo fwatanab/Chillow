@@ -148,13 +148,13 @@ const AdminDashboard = () => {
 	return (
 		<div className="min-h-screen bg-[#1b1d23] text-white flex flex-col">
 			<header className="bg-[#292b31] border-b border-white/5">
-				<div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-4 sm:px-6">
+				<div className="mx-auto flex w-full max-w-8xl flex-col gap-2 px-4 py-4 sm:px-6">
 					<p className="text-sm text-white/60">運営専用モニタリング</p>
 					<h1 className="text-2xl font-semibold">管理ダッシュボード</h1>
 				</div>
 			</header>
 
-			<main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
+			<main className="mx-auto flex w-full max-w-8xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
 				<section className="flex flex-wrap gap-3">
 					<div className="min-w-[150px] flex-1 rounded-2xl border border-white/10 bg-[#24262f] p-4 shadow-lg">
 						<p className="text-xs text-white/60">未対応の通報</p>
@@ -287,7 +287,7 @@ const AdminDashboard = () => {
 			</main>
 
 			<footer className="bg-[#292b31] border-t border-white/5">
-				<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-4 px-4 py-4 text-sm text-white/70 sm:justify-between sm:px-6">
+				<div className="mx-auto flex w-full max-w-8xl flex-wrap items-center gap-4 px-4 py-4 text-sm text-white/70 sm:justify-between sm:px-6">
 					<div className="flex min-w-0 flex-1 items-center gap-3">
 						<div className="h-12 w-12 rounded-full border border-white/10 bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-base font-bold text-white">
 							{adminAvatar ? (
