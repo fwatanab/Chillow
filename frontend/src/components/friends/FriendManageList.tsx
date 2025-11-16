@@ -31,7 +31,6 @@ const FriendManageList = ({ friends, loading, error, onReload }: Props) => {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="text-xl font-semibold">フレンド管理</h2>
 			{feedback && <p className="text-sm text-gray-300">{feedback}</p>}
 			{loading && <p className="text-sm text-gray-400">読み込み中...</p>}
 			{error && <p className="text-sm text-red-400">{error}</p>}

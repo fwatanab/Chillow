@@ -64,8 +64,6 @@ const FriendRequests = ({ onResponded }: Props) => {
 
   return (
     <div className="p-4">
-      <h3 className="text-lg font-semibold mb-2">フレンド申請</h3>
-
       {requests.length === 0 ? (
         <p className="text-sm text-gray-400">申請はありません</p>
       ) : (
